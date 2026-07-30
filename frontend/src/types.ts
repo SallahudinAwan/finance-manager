@@ -4,6 +4,7 @@ export interface User {
   id: number;
   email: string;
   name: string;
+  preferred_language: "en" | "ur" | null;
 }
 
 export interface Household {
@@ -22,6 +23,7 @@ export interface Session {
   household: Household | null;
   is_owner: boolean;
   needs_onboarding: boolean;
+  needs_language_selection: boolean;
 }
 
 export interface PeriodSummary {

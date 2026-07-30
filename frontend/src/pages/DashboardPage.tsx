@@ -20,7 +20,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ApiError, api, formatPkr, money } from "../api/client";
+import { ApiError, api, appLocale, formatPkr, money } from "../api/client";
 import { EmptyState, ErrorPanel, MetricCard, PageHeader, ProgressBar, Skeleton } from "../components/ui";
 import type { Dashboard, Trend } from "../types";
 
@@ -85,7 +85,7 @@ export function DashboardPage() {
       ? (money(data.period.net_new_savings) / money(data.period.savings_target)) * 100
       : 0;
   const chartData = (trends.data?.results ?? []).map((row) => ({
-    name: new Date(row.year, row.month - 1).toLocaleDateString("en", {
+    name: new Date(row.year, row.month - 1).toLocaleDateString(appLocale(), {
       month: "short",
     }),
     income: money(row.income_received),
@@ -96,7 +96,7 @@ export function DashboardPage() {
     <>
       <PageHeader
         eyebrow={new Date(data.period.year, data.period.month - 1).toLocaleDateString(
-          "en-PK",
+          appLocale(),
           { month: "long", year: "numeric" },
         )}
         title="Your financial home"
@@ -256,7 +256,7 @@ export function DashboardPage() {
                 <div>
                   <strong>{bill.name}</strong>
                   <small>
-                    Due {new Date(`${bill.due_date}T00:00:00`).toLocaleDateString("en-PK", {
+                    Due {new Date(`${bill.due_date}T00:00:00`).toLocaleDateString(appLocale(), {
                       day: "numeric",
                       month: "short",
                     })}

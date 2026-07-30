@@ -62,8 +62,12 @@ export function money(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function appLocale(): string {
+  return document.documentElement.lang === "ur" ? "ur-PK" : "en-PK";
+}
+
 export function formatPkr(value: unknown, compact = false): string {
-  return new Intl.NumberFormat("en-PK", {
+  return new Intl.NumberFormat(appLocale(), {
     style: "currency",
     currency: "PKR",
     currencyDisplay: "narrowSymbol",

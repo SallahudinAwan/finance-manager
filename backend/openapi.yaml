@@ -1405,6 +1405,44 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlannedExpense'
           description: ''
+  /api/v1/preferences/:
+    get:
+      operationId: v1_preferences_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreference'
+          description: ''
+    patch:
+      operationId: v1_preferences_partial_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreference'
+          description: ''
   /api/v1/reports/trends/:
     get:
       operationId: v1_reports_trends_retrieve
@@ -2731,6 +2769,15 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PatchedUserPreference:
+      type: object
+      properties:
+        preferred_language:
+          $ref: '#/components/schemas/PreferredLanguageEnum'
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
     PersonalExpense:
       type: object
       properties:
@@ -2847,6 +2894,14 @@ components:
       - remaining_amount
       - status
       - updated_at
+    PreferredLanguageEnum:
+      enum:
+      - en
+      - ur
+      type: string
+      description: |-
+        * `en` - English
+        * `ur` - Urdu
     ReconciliationInput:
       type: object
       properties:
@@ -3078,6 +3133,17 @@ components:
       - email
       - id
       - name
+    UserPreference:
+      type: object
+      properties:
+        preferred_language:
+          $ref: '#/components/schemas/PreferredLanguageEnum'
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
   securitySchemes:
     cookieAuth:
       type: apiKey

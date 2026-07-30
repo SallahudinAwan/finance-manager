@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { api, formatPkr, postJson } from "../api/client";
+import { api, appLocale, formatPkr, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
 import { ErrorPanel, PageHeader, Skeleton } from "../components/ui";
 import type { Paginated, Session } from "../types";
@@ -96,7 +96,7 @@ export function SettingsPage() {
             <strong>{formatPkr(bank.data.calculated_balance)}</strong>
             <p>
               Opened in the app on{" "}
-              {new Date(`${bank.data.opening_date}T00:00:00`).toLocaleDateString()}
+              {new Date(`${bank.data.opening_date}T00:00:00`).toLocaleDateString(appLocale())}
             </p>
           </div>
           {session.is_owner && (
@@ -222,7 +222,10 @@ export function SettingsPage() {
                     </span>
                     <div>
                       <strong>{invite.email}</strong>
-                      <small>{invite.status} · expires {new Date(invite.expires_at).toLocaleDateString()}</small>
+                      <small>
+                        {invite.status} · expires{" "}
+                        {new Date(invite.expires_at).toLocaleDateString(appLocale())}
+                      </small>
                     </div>
                     <button
                       className="icon-button"

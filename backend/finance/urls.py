@@ -28,6 +28,7 @@ from .views import (
     SessionView,
     TransferOwnershipView,
     TrendsView,
+    UserPreferenceView,
 )
 
 router = DefaultRouter()
@@ -47,6 +48,7 @@ urlpatterns = [
     path("", include(router.urls)),
     path("health/", HealthDetailView.as_view(), name="health-detail"),
     path("session/", SessionView.as_view(), name="session"),
+    path("preferences/", UserPreferenceView.as_view(), name="user-preferences"),
     path("onboarding/", OnboardingView.as_view(), name="onboarding"),
     path("household/", HouseholdView.as_view(), name="household"),
     path("household/members/", HouseholdMembersView.as_view(), name="household-members"),

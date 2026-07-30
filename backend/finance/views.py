@@ -34,6 +34,7 @@ from .models import (
     RecurringIncome,
     SavingsGoal,
     SavingsMovement,
+    UserPreference,
 )
 from .permissions import HasHousehold, IsHouseholdOwner, OwnerWriteMemberRead
 from .serializers import (
@@ -56,6 +57,7 @@ from .serializers import (
     RecurringIncomeSerializer,
     SavingsGoalSerializer,
     SavingsMovementSerializer,
+    UserPreferenceSerializer,
     UserSerializer,
 )
 from .services import (
@@ -91,9 +93,12 @@ class SessionView(APIView):
     @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request) -> Response:
         membership = user_membership(request.user)
+        preference = UserPreference.objects.filter(user=request.user).first()
+        user_data = UserSerializer(request.user).data
+        user_data["preferred_language"] = preference.preferred_language if preference else None
         return Response(
             {
-                "user": UserSerializer(request.user).data,
+                "user": user_data,
                 "membership": (
                     {
                         "role": membership.role,
@@ -107,8 +112,33 @@ class SessionView(APIView):
                 ),
                 "is_owner": is_owner(request.user),
                 "needs_onboarding": membership is None,
+                "needs_language_selection": preference is None,
             }
         )
+
+
+class UserPreferenceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: UserPreferenceSerializer})
+    def get(self, request) -> Response:
+        preference = UserPreference.objects.filter(user=request.user).first() or UserPreference(
+            user=request.user
+        )
+        return Response(UserPreferenceSerializer(preference).data)
+
+    @extend_schema(
+        request=UserPreferenceSerializer,
+        responses={200: UserPreferenceSerializer},
+    )
+    def patch(self, request) -> Response:
+        preference = UserPreference.objects.filter(user=request.user).first() or UserPreference(
+            user=request.user
+        )
+        serializer = UserPreferenceSerializer(preference, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class OnboardingView(APIView):

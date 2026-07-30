@@ -71,6 +71,26 @@ class Membership(TimestampedModel):
         return f"{self.user} · {self.household} · {self.role}"
 
 
+class UserPreference(TimestampedModel):
+    class Language(models.TextChoices):
+        ENGLISH = "en", "English"
+        URDU = "ur", "Urdu"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="finance_preference",
+    )
+    preferred_language = models.CharField(
+        max_length=2,
+        choices=Language.choices,
+        default=Language.ENGLISH,
+    )
+
+    def __str__(self) -> str:
+        return f"{self.user} · {self.get_preferred_language_display()}"
+
+
 class HouseholdInvitation(TimestampedModel):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"

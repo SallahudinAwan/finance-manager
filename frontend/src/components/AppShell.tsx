@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { Session } from "../types";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const nav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
@@ -111,6 +112,7 @@ export function AppShell({ session }: { session: Session }) {
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
           <div className="topbar-spacer" />
+          <LanguageSwitcher />
           <span className="currency-pill">PKR · Karachi</span>
           <button
             className="theme-button"

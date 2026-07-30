@@ -628,6 +628,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/preferences/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_preferences_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["v1_preferences_partial_update"];
+        trace?: never;
+    };
     "/api/v1/reports/trends/": {
         parameters: {
             query?: never;
@@ -1186,6 +1202,11 @@ export interface components {
             /** Format: date-time */
             readonly created_at?: string;
         };
+        PatchedUserPreference: {
+            preferred_language?: components["schemas"]["PreferredLanguageEnum"];
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
         PersonalExpense: {
             readonly id: number;
             period: number;
@@ -1223,6 +1244,12 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        /**
+         * @description * `en` - English
+         *     * `ur` - Urdu
+         * @enum {string}
+         */
+        PreferredLanguageEnum: "en" | "ur";
         ReconciliationInput: {
             /** Format: date */
             date?: string;
@@ -1323,6 +1350,11 @@ export interface components {
             /** Format: email */
             readonly email: string;
             readonly name: string;
+        };
+        UserPreference: {
+            preferred_language?: components["schemas"]["PreferredLanguageEnum"];
+            /** Format: date-time */
+            readonly updated_at: string;
         };
     };
     responses: never;
@@ -2794,6 +2826,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlannedExpense"];
+                };
+            };
+        };
+    };
+    v1_preferences_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPreference"];
+                };
+            };
+        };
+    };
+    v1_preferences_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUserPreference"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUserPreference"];
+                "multipart/form-data": components["schemas"]["PatchedUserPreference"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPreference"];
                 };
             };
         };
