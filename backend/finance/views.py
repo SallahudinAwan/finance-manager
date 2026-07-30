@@ -95,9 +95,7 @@ class SessionView(APIView):
         membership = user_membership(request.user)
         preference = UserPreference.objects.filter(user=request.user).first()
         user_data = UserSerializer(request.user).data
-        user_data["preferred_language"] = (
-            preference.preferred_language if preference else None
-        )
+        user_data["preferred_language"] = preference.preferred_language if preference else None
         return Response(
             {
                 "user": user_data,
@@ -124,9 +122,8 @@ class UserPreferenceView(APIView):
 
     @extend_schema(responses={200: UserPreferenceSerializer})
     def get(self, request) -> Response:
-        preference = (
-            UserPreference.objects.filter(user=request.user).first()
-            or UserPreference(user=request.user)
+        preference = UserPreference.objects.filter(user=request.user).first() or UserPreference(
+            user=request.user
         )
         return Response(UserPreferenceSerializer(preference).data)
 
@@ -135,9 +132,8 @@ class UserPreferenceView(APIView):
         responses={200: UserPreferenceSerializer},
     )
     def patch(self, request) -> Response:
-        preference = (
-            UserPreference.objects.filter(user=request.user).first()
-            or UserPreference(user=request.user)
+        preference = UserPreference.objects.filter(user=request.user).first() or UserPreference(
+            user=request.user
         )
         serializer = UserPreferenceSerializer(preference, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
