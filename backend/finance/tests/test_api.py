@@ -74,6 +74,90 @@ def test_member_cannot_record_shared_payment() -> None:
     assert household.ledger_entries.count() == 0
 
 
+def test_owner_can_edit_a_shared_transaction_without_reclassifying_it() -> None:
+    owner, household = create_household()
+    RecurringExpense.objects.create(
+        household=household,
+        name="Rent",
+        expected_amount=Decimal("38000.00"),
+        due_day=1,
+    )
+    planned = generate_month(household, 2026, 8).planned_expenses.get()
+    client = APIClient()
+    client.force_authenticate(owner)
+    created = client.post(
+        f"/api/v1/planned-expenses/{planned.id}/payments/",
+        {"amount": "18000.00", "date": "2026-08-01", "notes": "First transfer"},
+        format="json",
+    )
+
+    updated = client.patch(
+        f"/api/v1/ledger/{created.data['id']}/",
+        {"amount": "20000.00", "date": "2026-08-02", "notes": "Corrected transfer"},
+        format="json",
+    )
+    reclassified = client.patch(
+        f"/api/v1/ledger/{created.data['id']}/",
+        {"entry_type": LedgerEntry.EntryType.PERSONAL_EXPENSE},
+        format="json",
+    )
+    outside_month = client.patch(
+        f"/api/v1/ledger/{created.data['id']}/",
+        {"date": "2026-09-01"},
+        format="json",
+    )
+
+    assert updated.status_code == 200
+    assert updated.data["amount"] == "20000.00"
+    assert updated.data["notes"] == "Corrected transfer"
+    assert planned.payment_status == "partial"
+    assert reclassified.status_code == 400
+    assert outside_month.status_code == 400
+
+
+def test_personal_transaction_edits_remain_private_to_the_creator() -> None:
+    owner, household = create_household()
+    member = create_member(household)
+    period = generate_month(household, 2026, 8)
+    private_entry = LedgerEntry.objects.create(
+        household=household,
+        period=period,
+        created_by=member,
+        entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
+        direction=LedgerEntry.Direction.DEBIT,
+        date=date(2026, 8, 5),
+        amount=Decimal("2500.00"),
+        description="Lunch",
+    )
+    client = APIClient()
+    client.force_authenticate(member)
+
+    updated = client.patch(
+        f"/api/v1/personal-expenses/{private_entry.id}/",
+        {
+            "description": "Lunch with friends",
+            "amount": "3000.00",
+            "date": "2026-08-06",
+            "notes": "Corrected receipt",
+        },
+        format="json",
+    )
+    client.force_authenticate(owner)
+    owner_edit = client.patch(
+        f"/api/v1/personal-expenses/{private_entry.id}/",
+        {"amount": "1.00"},
+        format="json",
+    )
+    shared_ledger = client.get(f"/api/v1/ledger/?period={period.id}")
+
+    assert updated.status_code == 200
+    assert updated.data["description"] == "Lunch with friends"
+    assert updated.data["amount"] == "3000.00"
+    assert owner_edit.status_code == 404
+    assert shared_ledger.status_code == 200
+    assert shared_ledger.data["results"] == []
+
+
 def test_owner_backup_contains_private_entries_and_records_audit() -> None:
     owner, household = create_household()
     member = create_member(household)

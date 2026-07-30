@@ -409,11 +409,13 @@ class LedgerEntryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         household = user_household(self.request.user)
-        return (
-            LedgerEntry.objects.filter(household=household)
-            if household
-            else LedgerEntry.objects.none()
+        if not household:
+            return LedgerEntry.objects.none()
+        queryset = LedgerEntry.objects.filter(household=household).exclude(
+            entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE
         )
+        period_id = self.request.query_params.get("period")
+        return queryset.filter(period_id=period_id) if period_id else queryset
 
     def perform_create(self, serializer) -> None:
         serializer.save(
@@ -430,11 +432,13 @@ class PersonalExpenseViewSet(viewsets.ModelViewSet):
         household = user_household(self.request.user)
         if not household:
             return LedgerEntry.objects.none()
-        return LedgerEntry.objects.filter(
+        queryset = LedgerEntry.objects.filter(
             household=household,
             created_by=self.request.user,
             entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
         )
+        period_id = self.request.query_params.get("period")
+        return queryset.filter(period_id=period_id) if period_id else queryset
 
     def perform_create(self, serializer) -> None:
         serializer.save(

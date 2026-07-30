@@ -5,13 +5,14 @@ import {
   Check,
   CircleDollarSign,
   LockKeyhole,
+  Pencil,
   Plus,
   Receipt,
   WalletCards,
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { api, formatPkr, money, postJson } from "../api/client";
+import { api, formatPkr, money, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
 import type { Month, Paginated, Session } from "../types";
@@ -19,6 +20,17 @@ import type { Month, Paginated, Session } from "../types";
 interface PersonalExpense {
   id: number;
   period: number;
+  date: string;
+  amount: number | string;
+  description: string;
+  notes: string;
+}
+
+interface LedgerEntry {
+  id: number;
+  period: number;
+  entry_type: "income" | "household_expense" | "adjustment";
+  direction: "credit" | "debit";
   date: string;
   amount: number | string;
   description: string;
@@ -33,6 +45,8 @@ export function MonthPage() {
   const [paymentTarget, setPaymentTarget] = useState<number | null>(null);
   const [incomeTarget, setIncomeTarget] = useState<number | null>(null);
   const [personalOpen, setPersonalOpen] = useState(false);
+  const [personalEdit, setPersonalEdit] = useState<PersonalExpense | null>(null);
+  const [sharedEdit, setSharedEdit] = useState<LedgerEntry | null>(null);
   const month = useQuery({
     queryKey: ["month", label ?? "current"],
     queryFn: () =>
@@ -46,12 +60,18 @@ export function MonthPage() {
     queryKey: ["personal-expenses"],
     queryFn: () => api<Paginated<PersonalExpense>>("/personal-expenses/"),
   });
+  const shared = useQuery({
+    queryKey: ["ledger"],
+    queryFn: () => api<Paginated<LedgerEntry>>("/ledger/"),
+    enabled: session.is_owner,
+  });
 
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["month"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       queryClient.invalidateQueries({ queryKey: ["personal-expenses"] }),
+      queryClient.invalidateQueries({ queryKey: ["ledger"] }),
     ]);
   };
 
@@ -238,6 +258,71 @@ export function MonthPage() {
         </section>
       </div>
 
+      {session.is_owner && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">Actual bank movements</span>
+              <h2>Shared transactions</h2>
+            </div>
+            <small>Income, bill payments, and reconciliation adjustments</small>
+          </div>
+          {shared.data?.results.some((item) => item.period === data.id) ? (
+            <div className="expense-table-wrap">
+              <table className="expense-table transaction-table">
+                <thead>
+                  <tr>
+                    <th>Transaction</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shared.data.results
+                    .filter((item) => item.period === data.id)
+                    .map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <strong>{item.description}</strong>
+                          {item.notes && <small className="transaction-note">{item.notes}</small>}
+                        </td>
+                        <td>
+                          <span className={`status-chip ${item.direction}`}>
+                            {transactionType(item.entry_type)}
+                          </span>
+                        </td>
+                        <td>
+                          {new Date(`${item.date}T00:00:00`).toLocaleDateString("en-PK", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </td>
+                        <td className={item.direction === "credit" ? "positive-text" : ""}>
+                          {item.direction === "credit" ? "+" : "−"}
+                          {formatPkr(item.amount)}
+                        </td>
+                        <td>
+                          <button className="table-action" onClick={() => setSharedEdit(item)}>
+                            <Pencil size={13} /> Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              icon={<Receipt size={23} />}
+              title="No shared transactions yet"
+              description="Received income and household payments will appear here."
+            />
+          )}
+        </section>
+      )}
+
       <section className="panel">
         <div className="panel-heading">
           <div>
@@ -262,6 +347,13 @@ export function MonthPage() {
                     <small>{new Date(`${item.date}T00:00:00`).toLocaleDateString()}</small>
                   </div>
                   <b>{formatPkr(item.amount)}</b>
+                  <button
+                    className="icon-button personal-edit"
+                    aria-label={`Edit ${item.description}`}
+                    onClick={() => setPersonalEdit(item)}
+                  >
+                    <Pencil size={14} />
+                  </button>
                 </div>
               ))}
           </div>
@@ -297,6 +389,44 @@ export function MonthPage() {
       </Modal>
 
       <Modal
+        title="Edit shared transaction"
+        description="Correct the amount, date, or notes without changing what kind of transaction it is."
+        trigger={<span />}
+        open={sharedEdit !== null}
+        onOpenChange={(open) => !open && setSharedEdit(null)}
+      >
+        {sharedEdit && (
+          <TransactionEditForm
+            transaction={sharedEdit}
+            onSaved={async () => {
+              setSharedEdit(null);
+              await refresh();
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        title="Edit private expense"
+        description="Only you can see these details."
+        trigger={<span />}
+        open={personalEdit !== null}
+        onOpenChange={(open) => !open && setPersonalEdit(null)}
+      >
+        {personalEdit && (
+          <PersonalExpenseForm
+            period={personalEdit.period}
+            defaultDate={personalEdit.date}
+            expense={personalEdit}
+            onSaved={async () => {
+              setPersonalEdit(null);
+              await refresh();
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal
         title="Record received income"
         description="Record the actual amount that reached your bank."
         trigger={<span />}
@@ -316,6 +446,77 @@ export function MonthPage() {
         )}
       </Modal>
     </>
+  );
+}
+
+function transactionType(entryType: LedgerEntry["entry_type"]) {
+  if (entryType === "income") return "Income";
+  if (entryType === "household_expense") return "Household payment";
+  return "Adjustment";
+}
+
+function TransactionEditForm({
+  transaction,
+  onSaved,
+}: {
+  transaction: LedgerEntry;
+  onSaved: () => Promise<void>;
+}) {
+  const [amount, setAmount] = useState(String(transaction.amount));
+  const [dateValue, setDateValue] = useState(transaction.date);
+  const [notes, setNotes] = useState(transaction.notes);
+  const mutation = useMutation({
+    mutationFn: () =>
+      patchJson(`/ledger/${transaction.id}/`, {
+        amount,
+        date: dateValue,
+        notes,
+      }),
+    onSuccess: onSaved,
+  });
+
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        mutation.mutate();
+      }}
+    >
+      <label>
+        Amount
+        <div className="money-input">
+          <span>Rs</span>
+          <input
+            required
+            min="0.01"
+            step="0.01"
+            type="number"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+        </div>
+      </label>
+      <label>
+        Date
+        <input
+          required
+          type="date"
+          value={dateValue}
+          onChange={(event) => setDateValue(event.target.value)}
+        />
+      </label>
+      <label>
+        Notes <span className="optional">optional</span>
+        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+      </label>
+      {mutation.isError && (
+        <p className="form-error">Could not update this transaction. Check the date and amount.</p>
+      )}
+      <button className="button primary full" disabled={mutation.isPending}>
+        {mutation.isPending ? "Updating…" : "Update transaction"}
+      </button>
+    </form>
   );
 }
 
@@ -385,25 +586,31 @@ function MoneyMovementForm({
 function PersonalExpenseForm({
   period,
   defaultDate,
+  expense,
   onSaved,
 }: {
   period: number;
   defaultDate: string;
+  expense?: PersonalExpense;
   onSaved: () => Promise<void>;
 }) {
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState(expense?.description ?? "");
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : "");
   const [dateValue, setDateValue] = useState(defaultDate);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(expense?.notes ?? "");
   const mutation = useMutation({
-    mutationFn: () =>
-      postJson("/personal-expenses/", {
+    mutationFn: () => {
+      const body = {
         period,
         description,
         amount,
         date: dateValue,
         notes,
-      }),
+      };
+      return expense
+        ? patchJson(`/personal-expenses/${expense.id}/`, body)
+        : postJson("/personal-expenses/", body);
+    },
     onSuccess: onSaved,
   });
 
@@ -451,7 +658,11 @@ function PersonalExpenseForm({
       </label>
       {mutation.isError && <p className="form-error">Could not save this expense.</p>}
       <button className="button primary full" disabled={mutation.isPending}>
-        {mutation.isPending ? "Saving…" : "Add private expense"}
+        {mutation.isPending
+          ? "Saving…"
+          : expense
+            ? "Update private expense"
+            : "Add private expense"}
       </button>
     </form>
   );
