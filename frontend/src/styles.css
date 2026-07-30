@@ -1275,6 +1275,128 @@ p {
   color: var(--red) !important;
 }
 
+.household-payment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.payment-expectation {
+  overflow: hidden;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--indigo-soft) 75%, var(--surface)),
+      var(--surface)
+    );
+  border: 1px solid color-mix(in srgb, var(--indigo) 20%, var(--border));
+  border-radius: 14px;
+}
+
+.payment-expectation-head {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.payment-expectation-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: var(--indigo);
+  background: var(--indigo-soft);
+  border-radius: 12px;
+}
+
+.payment-expectation-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.payment-expectation-head small {
+  color: var(--indigo);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.payment-expectation-head strong {
+  margin: 2px 0;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-expectation-head div > span {
+  color: var(--muted);
+  font-size: 9.5px;
+}
+
+.payment-expectation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.payment-expectation-grid > div {
+  display: flex;
+  min-width: 0;
+  padding: 14px 16px;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+.payment-expectation-grid > div:last-child {
+  border-right: 0;
+}
+
+.payment-expectation-grid span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.payment-expectation-grid strong {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.payment-expectation-grid small {
+  margin-top: 3px;
+  color: var(--indigo);
+  font-size: 8px;
+}
+
+.payment-expectation-grid .remaining strong {
+  color: var(--red);
+}
+
+.payment-expectation-grid .settled strong {
+  color: var(--emerald);
+}
+
+.payment-expectation > p {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.55;
+}
+
+html[dir="rtl"] .payment-expectation-grid > div {
+  border-right: 0;
+  border-left: 1px solid var(--border);
+}
+
+html[dir="rtl"] .payment-expectation-grid > div:last-child {
+  border-left: 0;
+}
+
 .delete-confirmation {
   display: flex;
   flex-direction: column;
@@ -2696,6 +2818,18 @@ p {
   .template-columns { grid-template-columns: 1fr; }
   .metric-card { min-height: 118px; }
   .month-summary { grid-template-columns: 1fr; gap: 15px; }
+  .payment-expectation-grid { grid-template-columns: 1fr; }
+  .payment-expectation-grid > div,
+  html[dir="rtl"] .payment-expectation-grid > div {
+    padding: 10px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    border-left: 0;
+  }
+  .payment-expectation-grid > div:last-child,
+  html[dir="rtl"] .payment-expectation-grid > div:last-child {
+    border-bottom: 0;
+  }
   .month-summary-progress { grid-column: auto; grid-row: auto; }
   .panel { padding: 17px; border-radius: 14px; }
   .setting-card { grid-template-columns: 40px 1fr; }

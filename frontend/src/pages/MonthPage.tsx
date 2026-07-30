@@ -153,6 +153,9 @@ export function MonthPage() {
     (sum, item) => sum + money(item.paid_amount),
     0,
   );
+  const paymentExpense = data.planned_expenses.find(
+    (expense) => expense.id === paymentTarget,
+  );
 
   return (
     <>
@@ -575,18 +578,21 @@ export function MonthPage() {
         open={paymentTarget !== null}
         onOpenChange={(open) => !open && setPaymentTarget(null)}
       >
-        {paymentTarget && (
-          <MoneyMovementForm
-            label="Payment amount"
-            defaultDate={`${data.label}-01`}
-            onSubmit={(body) =>
-              postJson(`/planned-expenses/${paymentTarget}/payments/`, body)
-            }
-            onSaved={async () => {
-              setPaymentTarget(null);
-              await refresh();
-            }}
-          />
+        {paymentExpense && (
+          <div className="household-payment-form">
+            <HouseholdPaymentSummary expense={paymentExpense} />
+            <MoneyMovementForm
+              label="Payment amount"
+              defaultDate={`${data.label}-01`}
+              onSubmit={(body) =>
+                postJson(`/planned-expenses/${paymentExpense.id}/payments/`, body)
+              }
+              onSaved={async () => {
+                setPaymentTarget(null);
+                await refresh();
+              }}
+            />
+          </div>
         )}
       </Modal>
 
@@ -843,6 +849,59 @@ function transactionType(entryType: LedgerEntry["entry_type"]) {
   if (entryType === "income") return "Income";
   if (entryType === "household_expense") return "Household payment";
   return "Adjustment";
+}
+
+export function HouseholdPaymentSummary({
+  expense,
+}: {
+  expense: Month["planned_expenses"][number];
+}) {
+  return (
+    <section className="payment-expectation" aria-label="Payment details">
+      <div className="payment-expectation-head">
+        <span className="payment-expectation-icon">
+          <Receipt size={19} />
+        </span>
+        <div>
+          <small>You are paying</small>
+          <strong>{expense.name}</strong>
+          <span>
+            Due{" "}
+            {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(appLocale(), {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        </div>
+        <span className={`status-chip ${expense.status}`}>{expense.status}</span>
+      </div>
+      <div className="payment-expectation-grid">
+        <div>
+          <span>Expected total</span>
+          <strong>{formatPkr(expense.expected_amount)}</strong>
+        </div>
+        <div>
+          <span>Paid so far</span>
+          <strong>{formatPkr(expense.paid_amount)}</strong>
+          {money(expense.carryover_credit) > 0 && (
+            <small>{formatPkr(expense.carryover_credit)} carried forward</small>
+          )}
+        </div>
+        <div className={money(expense.remaining_amount) > 0 ? "remaining" : "settled"}>
+          <span>Remaining to pay</span>
+          <strong>{formatPkr(expense.remaining_amount)}</strong>
+          {money(expense.overpaid_amount) > 0 && (
+            <small>{formatPkr(expense.overpaid_amount)} overpaid</small>
+          )}
+        </div>
+      </div>
+      <p>
+        Enter the amount you are paying now. You can pay the full remaining balance or
+        record a partial payment.
+      </p>
+    </section>
+  );
 }
 
 function TransactionEditForm({

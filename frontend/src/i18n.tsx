@@ -113,6 +113,13 @@ const urduMessages: Record<string, string> = {
   "Partial payments are supported and the remaining balance updates automatically.":
     "جزوی ادائیگی ممکن ہے اور باقی رقم خودکار طور پر اپ ڈیٹ ہوگی۔",
   "Payment amount": "ادائیگی کی رقم",
+  "Payment details": "ادائیگی کی تفصیل",
+  "You are paying": "آپ یہ ادائیگی کر رہے ہیں",
+  "Expected total": "کل متوقع رقم",
+  "Paid so far": "اب تک ادا شدہ",
+  "Remaining to pay": "باقی قابلِ ادائیگی",
+  "Enter the amount you are paying now. You can pay the full remaining balance or record a partial payment.":
+    "اب ادا کی جانے والی رقم درج کریں۔ آپ مکمل بقایا یا جزوی ادائیگی ریکارڈ کر سکتے ہیں۔",
   "Edit shared transaction": "مشترکہ لین دین میں ترمیم",
   "Correct the amount, date, or notes without changing what kind of transaction it is.":
     "لین دین کی قسم بدلے بغیر رقم، تاریخ یا نوٹس درست کریں۔",
