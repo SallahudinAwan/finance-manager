@@ -168,7 +168,7 @@ export function OnboardingPage({ session }: { session: Session }) {
             <>
               <div className="wizard-heading">
                 <span><PiggyBank size={20} /></span>
-                <div><small>Step 3 of 3</small><h2>Give savings a purpose</h2><p>These are virtual envelopes inside the same bank account.</p></div>
+                <div><small>Step 3 of 3</small><h2>Give savings a purpose</h2><p>Opening amounts set your savings baseline; future contributions record new money entering the bank.</p></div>
               </div>
               <div className="setup-section">
                 <div className="setup-title"><div><PiggyBank size={18} /><span><strong>Savings goals</strong><small>Targets are optional</small></span></div><button onClick={() => setGoals([...goals, { name: "", opening_balance: "0", target_amount: "" }])}><Plus size={16} /> Add</button></div>

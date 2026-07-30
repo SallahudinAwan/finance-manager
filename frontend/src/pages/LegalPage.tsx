@@ -29,7 +29,7 @@ const content = {
     sections: [
       [
         "Your records",
-        "You are responsible for the accuracy of the amounts you enter and for reconciling them with your bank. Savings goals are virtual envelopes and do not move bank funds.",
+        "You are responsible for the accuracy of the amounts you enter and for reconciling them with your bank. Savings contributions and withdrawals are treated as bank cash flow; transfers between goals are bank-neutral.",
       ],
       [
         "Acceptable use",

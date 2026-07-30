@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   preferred_language: "en" | "ur" | null;
+  tour_completed: boolean;
 }
 
 export interface Household {

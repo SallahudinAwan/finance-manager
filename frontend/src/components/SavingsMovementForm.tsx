@@ -15,11 +15,12 @@ export function SavingsMovementForm({
   defaultDate: string;
   onSaved: () => Promise<void>;
 }) {
+  const activeGoals = goals.filter((goal) => goal.active);
   const [kind, setKind] = useState<"contribution" | "withdrawal" | "transfer">(
     "contribution",
   );
   const [source, setSource] = useState("");
-  const [destination, setDestination] = useState(goals[0]?.id.toString() ?? "");
+  const [destination, setDestination] = useState(activeGoals[0]?.id.toString() ?? "");
   const [dateValue, setDateValue] = useState(defaultDate);
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -79,7 +80,7 @@ export function SavingsMovementForm({
             onChange={(event) => setDestination(event.target.value)}
           >
             <option value="">Choose a goal</option>
-            {goals.map((goal) => (
+            {activeGoals.map((goal) => (
               <option key={goal.id} value={goal.id}>
                 {goal.name}
               </option>

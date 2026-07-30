@@ -236,11 +236,34 @@ def ledger_signed_total(queryset) -> Decimal:
     return result["total"]
 
 
+def savings_cash_total(queryset) -> Decimal:
+    result = queryset.aggregate(
+        total=Coalesce(
+            Sum(
+                Case(
+                    When(kind=SavingsMovement.Kind.CONTRIBUTION, then=F("amount")),
+                    When(kind=SavingsMovement.Kind.WITHDRAWAL, then=-F("amount")),
+                    default=Value(ZERO),
+                    output_field=MONEY_FIELD,
+                )
+            ),
+            Value(ZERO, output_field=MONEY_FIELD),
+        )
+    )
+    return result["total"]
+
+
 def bank_calculated_balance(account: BankAccount, through_date: date | None = None) -> Decimal:
     entries = account.household.ledger_entries.all()
+    savings_movements = account.household.savings_movements.all()
     if through_date:
         entries = entries.filter(date__lte=through_date)
-    return account.opening_balance + ledger_signed_total(entries)
+        savings_movements = savings_movements.filter(date__lte=through_date)
+    return (
+        account.opening_balance
+        + ledger_signed_total(entries)
+        + savings_cash_total(savings_movements)
+    )
 
 
 def period_amount(

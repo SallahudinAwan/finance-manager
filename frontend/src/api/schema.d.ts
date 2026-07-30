@@ -1176,10 +1176,10 @@ export interface components {
         PatchedSavingsGoal: {
             readonly id?: number;
             name?: string;
-            /** Format: decimal */
-            opening_balance?: string;
-            /** Format: decimal */
-            target_amount?: string | null;
+            /** Format: double */
+            opening_balance?: number;
+            /** Format: double */
+            target_amount?: number | null;
             active?: boolean;
             /** Format: double */
             readonly balance?: number;
@@ -1204,6 +1204,7 @@ export interface components {
         };
         PatchedUserPreference: {
             preferred_language?: components["schemas"]["PreferredLanguageEnum"];
+            tour_completed?: boolean;
             /** Format: date-time */
             readonly updated_at?: string;
         };
@@ -1294,10 +1295,10 @@ export interface components {
         SavingsGoal: {
             readonly id: number;
             name: string;
-            /** Format: decimal */
-            opening_balance?: string;
-            /** Format: decimal */
-            target_amount?: string | null;
+            /** Format: double */
+            opening_balance: number;
+            /** Format: double */
+            target_amount?: number | null;
             active?: boolean;
             /** Format: double */
             readonly balance: number;
@@ -1353,6 +1354,7 @@ export interface components {
         };
         UserPreference: {
             preferred_language?: components["schemas"]["PreferredLanguageEnum"];
+            tour_completed?: boolean;
             /** Format: date-time */
             readonly updated_at: string;
         };

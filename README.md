@@ -14,8 +14,8 @@ virtual savings envelopes, reconciliation, reports, reminders, and exports.
 - Members can view shared summaries and manage only their own personal expense details.
 - Shared dashboards use an anonymous combined personal-spending total.
 - An owner can include private member entries only through the explicit full JSON backup.
-- Savings goals are virtual envelopes inside the tracked bank account. Contributions do not
-  change the bank balance.
+- Savings goals track designated funds. Contributions represent new money entering the tracked
+  bank account, withdrawals represent money leaving it, and goal-to-goal transfers are bank-neutral.
 - The original Google Sheet is not read, changed, synchronized, or imported.
 
 ## Stack
@@ -81,8 +81,9 @@ CI regenerates both and fails on drift.
 ## Financial definitions
 
 ```text
-calculated bank = opening balance + income - household payments
-                  - personal expenses + adjustments
+calculated bank = opening balance + income + savings contributions
+                  - household payments - personal expenses
+                  - savings withdrawals + adjustments
 reconciliation variance = entered bank balance - calculated balance
 house balance = planned household expenses - actual household payments
 net monthly cash flow = income - household payments - personal expenses

@@ -161,11 +161,15 @@ const urduMessages: Record<string, string> = {
   "Add private expense": "ذاتی خرچ شامل کریں",
   "Virtual envelopes": "مجازی بچت خانے",
   "Savings that have a purpose": "مقصد کے ساتھ بچت",
+  "Record external savings deposits, protect them with goals, and keep your calculated bank balance accurate.":
+    "باہر سے آنے والی بچت جمع کریں، اہداف کے ذریعے محفوظ رکھیں اور حساب شدہ بینک بیلنس درست رکھیں۔",
   "Every rupee stays in your bank account while goals make sure it is not accidentally spent.":
     "ہر روپیہ بینک میں رہتا ہے جبکہ اہداف اسے غیر ارادی خرچ ہونے سے محفوظ رکھتے ہیں۔",
   "Move savings": "بچت منتقل کریں",
   "Contributions and withdrawals change what is reserved, not the bank ledger.":
     "جمع اور نکلوائی محفوظ رقم بدلتی ہے، بینک لیجر نہیں۔",
+  "Contributions increase the calculated bank, withdrawals decrease it, and transfers stay bank-neutral.":
+    "بچت کی جمع حساب شدہ بینک بیلنس بڑھاتی ہے، نکلوائی کم کرتی ہے اور اہداف کے درمیان منتقلی بیلنس نہیں بدلتی۔",
   "Create a savings goal": "بچت کا ہدف بنائیں",
   "Total reserved": "کل محفوظ رقم",
   "Active": "فعال",
@@ -280,6 +284,8 @@ const urduMessages: Record<string, string> = {
   "Give savings a purpose": "بچت کو مقصد دیں",
   "These are virtual envelopes inside the same bank account.":
     "یہ اسی بینک اکاؤنٹ کے اندر مجازی بچت خانے ہیں۔",
+  "Opening amounts set your savings baseline; future contributions record new money entering the bank.":
+    "ابتدائی رقوم آپ کی بچت کی بنیاد طے کرتی ہیں؛ آئندہ جمع ہونے والی بچت بینک میں آنے والی نئی رقم ریکارڈ کرے گی۔",
   "Savings goals": "بچت کے اہداف",
   "Targets are optional": "اہداف اختیاری ہیں",
   "Already saved": "پہلے سے محفوظ",
@@ -301,6 +307,43 @@ const urduMessages: Record<string, string> = {
   "To": "کہاں",
   "Choose a goal": "ہدف منتخب کریں",
   "Save movement": "منتقلی محفوظ کریں",
+  "Edit savings goal": "بچت کے ہدف میں ترمیم",
+  "Update the goal name, target, or active status. Use a movement to change its balance.":
+    "ہدف کا نام، مطلوبہ رقم یا فعال حالت اپ ڈیٹ کریں۔ بیلنس بدلنے کے لیے منتقلی ریکارڈ کریں۔",
+  "Starting reserved balance": "ابتدائی محفوظ بیلنس",
+  "Use only for savings already included in your opening bank balance. Record new money with Add movement.":
+    "صرف اس بچت کے لیے استعمال کریں جو ابتدائی بینک بیلنس میں پہلے سے شامل ہے۔ نئی رقم ’منتقلی شامل کریں‘ سے ریکارڈ کریں۔",
+  "Inactive": "غیر فعال",
+  "Active goal": "فعال ہدف",
+  "Inactive goals remain in your history but can no longer receive new savings.":
+    "غیر فعال اہداف آپ کی تاریخ میں رہیں گے مگر نئی بچت وصول نہیں کر سکیں گے۔",
+  "Update goal": "ہدف اپ ڈیٹ کریں",
+  "Start guided tour": "رہنمائی کا دورہ شروع کریں",
+  "Skip guided tour": "رہنمائی کا دورہ چھوڑیں",
+  "Welcome to Finance Manager": "فنانس مینیجر میں خوش آمدید",
+  "Your finances, in one calm place": "آپ کے مالی معاملات، ایک پُرسکون جگہ پر",
+  "This short tour shows where to track your month, protect savings, and understand your real financial position.":
+    "یہ مختصر رہنمائی آپ کو ماہانہ حساب، بچت کی حفاظت اور حقیقی مالی صورتحال سمجھنے کا طریقہ دکھاتی ہے۔",
+  "See the important numbers first": "اہم اعداد پہلے دیکھیں",
+  "Your dashboard brings together safe-to-spend money, calculated bank balance, unpaid bills, savings progress, and trends.":
+    "ڈیش بورڈ خرچ کے لیے محفوظ رقم، حساب شدہ بینک بیلنس، بقایا بل، بچت کی پیش رفت اور رجحانات ایک جگہ دکھاتا ہے۔",
+  "Record what actually happened": "جو حقیقت میں ہوا اسے ریکارڈ کریں",
+  "Receive income, pay household bills in full or partially, add private expenses, and manage previous months here.":
+    "یہاں آمدنی وصول کریں، گھریلو بل مکمل یا جزوی ادا کریں، ذاتی اخراجات اور پچھلے مہینے سنبھالیں۔",
+  "Give every saved rupee a purpose": "ہر محفوظ روپے کو مقصد دیں",
+  "Create goals, edit their targets, and move reserved money between your virtual savings envelopes.":
+    "اہداف بنائیں، مطلوبہ رقم میں ترمیم کریں اور محفوظ رقم کو مجازی بچت خانوں کے درمیان منتقل کریں۔",
+  "Turn activity into a clear story": "سرگرمی کو واضح مالی تصویر بنائیں",
+  "Follow income, spending, cash flow, and savings over time, then export reports or a complete backup.":
+    "وقت کے ساتھ آمدنی، اخراجات، کیش فلو اور بچت دیکھیں، پھر رپورٹس یا مکمل بیک اپ برآمد کریں۔",
+  "Your preferences": "آپ کی ترجیحات",
+  "Make the app feel like yours": "ایپ کو اپنی پسند کے مطابق بنائیں",
+  "Switch between English and Urdu anytime. You can replay this tour later from the question-mark button.":
+    "کسی بھی وقت انگریزی اور اردو تبدیل کریں۔ سوالیہ نشان کے بٹن سے یہ رہنمائی دوبارہ دیکھی جا سکتی ہے۔",
+  "Next": "اگلا",
+  "Finish tour": "رہنمائی مکمل کریں",
+  "We couldn’t save your tour progress. Please try again.":
+    "رہنمائی کی پیش رفت محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔",
   "Add month": "مہینہ شامل کریں",
   "Open month": "مہینہ کھولیں",
   "Open monthly workspace": "ماہانہ ورک اسپیس کھولیں",

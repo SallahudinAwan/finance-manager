@@ -9,6 +9,7 @@ import {
   Menu,
   Moon,
   PiggyBank,
+  CircleHelp,
   Settings,
   Sun,
   UserRound,
@@ -18,6 +19,7 @@ import {
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { Session } from "../types";
+import { GuidedTour } from "./GuidedTour";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const nav = [
@@ -34,6 +36,7 @@ export function AppShell({ session }: { session: Session }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
+  const [tourOpen, setTourOpen] = useState(!session.user.tour_completed);
   const location = useLocation();
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
@@ -45,7 +48,7 @@ export function AppShell({ session }: { session: Session }) {
   return (
     <div className={`app-shell ${collapsed ? "collapsed" : ""}`}>
       <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
-        <div className="brand">
+        <div className="brand" data-tour="brand">
           <span className="brand-mark">
             <Landmark size={20} />
           </span>
@@ -68,6 +71,17 @@ export function AppShell({ session }: { session: Session }) {
               to={item.to}
               end={item.end}
               className={({ isActive }) => (isActive ? "active" : "")}
+              data-tour={
+                item.to === "/app"
+                  ? "overview"
+                  : item.to === "/app/month"
+                    ? "month"
+                    : item.to === "/app/savings"
+                      ? "savings"
+                      : item.to === "/app/reports"
+                        ? "reports"
+                        : undefined
+              }
             >
               <item.icon size={19} />
               <span>{item.label}</span>
@@ -112,7 +126,18 @@ export function AppShell({ session }: { session: Session }) {
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
           <div className="topbar-spacer" />
-          <LanguageSwitcher />
+          <button
+            className="theme-button"
+            type="button"
+            aria-label="Start guided tour"
+            title="Start guided tour"
+            onClick={() => setTourOpen(true)}
+          >
+            <CircleHelp size={18} />
+          </button>
+          <span data-tour="language">
+            <LanguageSwitcher />
+          </span>
           <span className="currency-pill">PKR · Karachi</span>
           <button
             className="theme-button"
@@ -126,6 +151,7 @@ export function AppShell({ session }: { session: Session }) {
           <Outlet context={{ session }} />
         </div>
       </main>
+      <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
 }

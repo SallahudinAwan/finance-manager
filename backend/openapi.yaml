@@ -2717,13 +2717,17 @@ components:
           type: string
           maxLength: 120
         opening_balance:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.00
+          exclusiveMaximum: true
         target_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.01
+          exclusiveMaximum: true
           nullable: true
         active:
           type: boolean
@@ -2774,6 +2778,8 @@ components:
       properties:
         preferred_language:
           $ref: '#/components/schemas/PreferredLanguageEnum'
+        tour_completed:
+          type: boolean
         updated_at:
           type: string
           format: date-time
@@ -3008,13 +3014,17 @@ components:
           type: string
           maxLength: 120
         opening_balance:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.00
+          exclusiveMaximum: true
         target_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.01
+          exclusiveMaximum: true
           nullable: true
         active:
           type: boolean
@@ -3035,6 +3045,7 @@ components:
       - created_at
       - id
       - name
+      - opening_balance
       - updated_at
     SavingsGoalSetup:
       type: object
@@ -3138,6 +3149,8 @@ components:
       properties:
         preferred_language:
           $ref: '#/components/schemas/PreferredLanguageEnum'
+        tour_completed:
+          type: boolean
         updated_at:
           type: string
           format: date-time
