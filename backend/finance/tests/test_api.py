@@ -115,6 +115,32 @@ def test_owner_can_edit_a_shared_transaction_without_reclassifying_it() -> None:
     assert outside_month.status_code == 400
 
 
+def test_owner_can_delete_a_shared_payment_and_restore_the_bill_balance() -> None:
+    owner, household = create_household()
+    RecurringExpense.objects.create(
+        household=household,
+        name="Rent",
+        expected_amount=Decimal("38000.00"),
+        due_day=1,
+    )
+    planned = generate_month(household, 2026, 8).planned_expenses.get()
+    client = APIClient()
+    client.force_authenticate(owner)
+    created = client.post(
+        f"/api/v1/planned-expenses/{planned.id}/payments/",
+        {"amount": "18000.00", "date": "2026-08-01"},
+        format="json",
+    )
+
+    deleted = client.delete(f"/api/v1/ledger/{created.data['id']}/")
+
+    planned.refresh_from_db()
+    assert deleted.status_code == 204
+    assert planned.paid_amount == Decimal("0.00")
+    assert planned.remaining_amount == Decimal("38000.00")
+    assert planned.payment_status == "unpaid"
+
+
 def test_personal_transaction_edits_remain_private_to_the_creator() -> None:
     owner, household = create_household()
     member = create_member(household)
@@ -156,6 +182,35 @@ def test_personal_transaction_edits_remain_private_to_the_creator() -> None:
     assert owner_edit.status_code == 404
     assert shared_ledger.status_code == 200
     assert shared_ledger.data["results"] == []
+
+
+def test_personal_transaction_deletion_remains_private_to_the_creator() -> None:
+    owner, household = create_household()
+    member = create_member(household)
+    other_member = create_member(household, "other@example.com")
+    period = generate_month(household, 2026, 8)
+    private_entry = LedgerEntry.objects.create(
+        household=household,
+        period=period,
+        created_by=member,
+        entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
+        direction=LedgerEntry.Direction.DEBIT,
+        date=date(2026, 8, 5),
+        amount=Decimal("2500.00"),
+        description="Lunch",
+    )
+    client = APIClient()
+    client.force_authenticate(other_member)
+    other_delete = client.delete(f"/api/v1/personal-expenses/{private_entry.id}/")
+    client.force_authenticate(owner)
+    owner_delete = client.delete(f"/api/v1/ledger/{private_entry.id}/")
+    client.force_authenticate(member)
+    creator_delete = client.delete(f"/api/v1/personal-expenses/{private_entry.id}/")
+
+    assert other_delete.status_code == 404
+    assert owner_delete.status_code == 404
+    assert creator_delete.status_code == 204
+    assert not LedgerEntry.objects.filter(id=private_entry.id).exists()
 
 
 def test_owner_backup_contains_private_entries_and_records_audit() -> None:

@@ -8,11 +8,12 @@ import {
   Pencil,
   Plus,
   Receipt,
+  Trash2,
   WalletCards,
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { api, formatPkr, money, patchJson, postJson } from "../api/client";
+import { api, deleteJson, formatPkr, money, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
 import type { Month, Paginated, Session } from "../types";
@@ -37,6 +38,10 @@ interface LedgerEntry {
   notes: string;
 }
 
+type DeleteTarget =
+  | { kind: "shared"; transaction: LedgerEntry }
+  | { kind: "personal"; transaction: PersonalExpense };
+
 export function MonthPage() {
   const { session } = useOutletContext<{ session: Session }>();
   const { label } = useParams();
@@ -47,6 +52,7 @@ export function MonthPage() {
   const [personalOpen, setPersonalOpen] = useState(false);
   const [personalEdit, setPersonalEdit] = useState<PersonalExpense | null>(null);
   const [sharedEdit, setSharedEdit] = useState<LedgerEntry | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const month = useQuery({
     queryKey: ["month", label ?? "current"],
     queryFn: () =>
@@ -304,9 +310,19 @@ export function MonthPage() {
                           {formatPkr(item.amount)}
                         </td>
                         <td>
-                          <button className="table-action" onClick={() => setSharedEdit(item)}>
-                            <Pencil size={13} /> Edit
-                          </button>
+                          <div className="transaction-actions">
+                            <button className="table-action" onClick={() => setSharedEdit(item)}>
+                              <Pencil size={13} /> Edit
+                            </button>
+                            <button
+                              className="table-action danger-action"
+                              onClick={() =>
+                                setDeleteTarget({ kind: "shared", transaction: item })
+                              }
+                            >
+                              <Trash2 size={13} /> Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -347,13 +363,24 @@ export function MonthPage() {
                     <small>{new Date(`${item.date}T00:00:00`).toLocaleDateString()}</small>
                   </div>
                   <b>{formatPkr(item.amount)}</b>
-                  <button
-                    className="icon-button personal-edit"
-                    aria-label={`Edit ${item.description}`}
-                    onClick={() => setPersonalEdit(item)}
-                  >
-                    <Pencil size={14} />
-                  </button>
+                  <div className="personal-actions">
+                    <button
+                      className="icon-button personal-edit"
+                      aria-label={`Edit ${item.description}`}
+                      onClick={() => setPersonalEdit(item)}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="icon-button personal-delete"
+                      aria-label={`Delete ${item.description}`}
+                      onClick={() =>
+                        setDeleteTarget({ kind: "personal", transaction: item })
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
           </div>
@@ -427,6 +454,25 @@ export function MonthPage() {
       </Modal>
 
       <Modal
+        title="Delete transaction?"
+        description="This permanently removes the transaction and immediately recalculates every affected balance."
+        trigger={<span />}
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        {deleteTarget && (
+          <TransactionDeleteConfirmation
+            target={deleteTarget}
+            onDeleted={async () => {
+              setDeleteTarget(null);
+              await refresh();
+            }}
+            onCancel={() => setDeleteTarget(null)}
+          />
+        )}
+      </Modal>
+
+      <Modal
         title="Record received income"
         description="Record the actual amount that reached your bank."
         trigger={<span />}
@@ -446,6 +492,64 @@ export function MonthPage() {
         )}
       </Modal>
     </>
+  );
+}
+
+function TransactionDeleteConfirmation({
+  target,
+  onDeleted,
+  onCancel,
+}: {
+  target: DeleteTarget;
+  onDeleted: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const mutation = useMutation({
+    mutationFn: () =>
+      deleteJson(
+        target.kind === "shared"
+          ? `/ledger/${target.transaction.id}/`
+          : `/personal-expenses/${target.transaction.id}/`,
+      ),
+    onSuccess: onDeleted,
+  });
+
+  return (
+    <div className="delete-confirmation">
+      <div className="delete-transaction-summary">
+        <span>{target.transaction.description}</span>
+        <strong>{formatPkr(target.transaction.amount)}</strong>
+        <small>
+          {new Date(`${target.transaction.date}T00:00:00`).toLocaleDateString("en-PK", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+        </small>
+      </div>
+      <p>
+        {target.kind === "shared"
+          ? "If this is a bill payment, its paid and remaining amounts will be updated."
+          : "This private expense will no longer count toward your spending totals."}
+      </p>
+      {mutation.isError && (
+        <p className="form-error">Could not delete this transaction. Please try again.</p>
+      )}
+      <div className="dialog-actions">
+        <button className="button secondary" type="button" onClick={onCancel}>
+          Keep transaction
+        </button>
+        <button
+          className="button danger"
+          type="button"
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate()}
+        >
+          <Trash2 size={16} />
+          {mutation.isPending ? "Deleting…" : "Delete permanently"}
+        </button>
+      </div>
+    </div>
   );
 }
 
