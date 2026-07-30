@@ -95,7 +95,46 @@ export function MonthPage() {
   };
 
   if (month.isLoading) return <Skeleton height={520} />;
-  if (month.isError || !month.data) return <ErrorPanel />;
+  if (month.isError || !month.data) {
+    if (session.is_owner && months.data?.results.length === 0) {
+      return (
+        <>
+          <PageHeader
+            eyebrow="Monthly workspace"
+            title="No active months"
+            description="Deleted months stay hidden until you explicitly create them again."
+            actions={
+              <Modal
+                title="Add a month"
+                description="Create a fresh monthly workspace from your recurring plan."
+                trigger={
+                  <button className="button primary">
+                    <CalendarPlus size={17} /> Add month
+                  </button>
+                }
+                open={addMonthOpen}
+                onOpenChange={setAddMonthOpen}
+              >
+                <AddMonthForm
+                  onCreated={async (created) => {
+                    setAddMonthOpen(false);
+                    await queryClient.invalidateQueries({ queryKey: ["months"] });
+                    navigate(`/app/month/${created.label}`);
+                  }}
+                />
+              </Modal>
+            }
+          />
+          <EmptyState
+            icon={<CalendarPlus size={24} />}
+            title="Your month list is empty"
+            description="Use Add month when you are ready to start a new or previously deleted monthly workspace."
+          />
+        </>
+      );
+    }
+    return <ErrorPanel />;
+  }
   const data = month.data;
 
   const plannedTotal = data.planned_expenses.reduce(

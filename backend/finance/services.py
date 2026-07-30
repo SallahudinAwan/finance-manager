@@ -90,7 +90,8 @@ def refresh_expense_carryovers(
     """Recalculate bill credits from one month through every later existing month."""
     periods = list(
         household.periods.filter(
-            Q(year__gt=from_period.year) | Q(year=from_period.year, month__gte=from_period.month)
+            Q(year__gt=from_period.year) | Q(year=from_period.year, month__gte=from_period.month),
+            is_deleted=False,
         ).order_by("year", "month")
     )
     for period in periods:
@@ -98,6 +99,7 @@ def refresh_expense_carryovers(
         previous = household.periods.filter(
             year=previous_year,
             month=previous_month,
+            is_deleted=False,
         ).first()
         previous_expenses = (
             list(previous.planned_expenses.prefetch_related("ledger_entries")) if previous else []
@@ -115,13 +117,26 @@ def refresh_expense_carryovers(
 
 
 @transaction.atomic
-def generate_month(household: Household, year: int, month: int) -> MonthlyPeriod:
+def generate_month(
+    household: Household,
+    year: int,
+    month: int,
+    *,
+    restore_deleted: bool = False,
+) -> MonthlyPeriod:
     period, created = MonthlyPeriod.objects.get_or_create(
         household=household,
         year=year,
         month=month,
         defaults={"savings_target": household.monthly_savings_target},
     )
+    if period.is_deleted and not restore_deleted:
+        return period
+    if period.is_deleted:
+        period.is_deleted = False
+        period.savings_target = household.monthly_savings_target
+        period.save(update_fields=["is_deleted", "savings_target", "updated_at"])
+        created = True
     if created:
         MonthlyIncomePlan.objects.bulk_create(
             [
@@ -159,7 +174,8 @@ def delete_month(period: MonthlyPeriod, actor: Any) -> dict[str, int]:
     label = period.label
     next_period = (
         household.periods.filter(
-            Q(year__gt=period.year) | Q(year=period.year, month__gt=period.month)
+            Q(year__gt=period.year) | Q(year=period.year, month__gt=period.month),
+            is_deleted=False,
         )
         .order_by("year", "month")
         .first()
@@ -182,7 +198,10 @@ def delete_month(period: MonthlyPeriod, actor: Any) -> dict[str, int]:
         date__gte=month_start,
         date__lt=next_month_start,
     ).delete()
-    period.delete()
+    period.income_plans.all().delete()
+    period.planned_expenses.all().delete()
+    period.is_deleted = True
+    period.save(update_fields=["is_deleted", "updated_at"])
 
     if next_period:
         refresh_expense_carryovers(household, next_period)
@@ -356,7 +375,7 @@ def dashboard_data(household: Household, period: MonthlyPeriod) -> dict[str, Any
 
 
 def trends_data(household: Household, limit: int = 12) -> list[dict[str, Any]]:
-    periods = list(household.periods.order_by("-year", "-month")[:limit])
+    periods = list(household.periods.filter(is_deleted=False).order_by("-year", "-month")[:limit])
     periods.reverse()
     rows: list[dict[str, Any]] = []
     running_savings = sum(
