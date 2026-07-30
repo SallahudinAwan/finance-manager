@@ -288,7 +288,8 @@ def test_owner_can_delete_a_complete_month_and_later_carryovers_recalculate() ->
 
     july_bill.refresh_from_db()
     assert response.status_code == 204
-    assert not MonthlyPeriod.objects.filter(id=june.id).exists()
+    deleted_period = MonthlyPeriod.objects.get(id=june.id)
+    assert deleted_period.is_deleted is True
     assert not LedgerEntry.objects.filter(period_id=june.id).exists()
     assert not SavingsMovement.objects.filter(period_id=june.id).exists()
     assert not BankReconciliation.objects.filter(date=date(2026, 6, 30)).exists()
@@ -298,6 +299,24 @@ def test_owner_can_delete_a_complete_month_and_later_carryovers_recalculate() ->
     audit = household.audit_events.get(action="month_deleted")
     assert audit.metadata["month"] == "2026-06"
     assert audit.metadata["ledger_entries"] == 2
+    listed = client.get("/api/v1/months/")
+    assert listed.status_code == 200
+    assert all(item["label"] != "2026-06" for item in listed.data["results"])
+    hidden = client.get("/api/v1/months/by-label/?month=2026-06")
+    deleted_period.refresh_from_db()
+    assert hidden.status_code == 404
+    assert deleted_period.is_deleted is True
+
+    restored = client.post(
+        "/api/v1/months/generate/",
+        {"year": 2026, "month": 6},
+        format="json",
+    )
+    deleted_period.refresh_from_db()
+    assert restored.status_code == 201
+    assert restored.data["id"] == june.id
+    assert deleted_period.is_deleted is False
+    assert deleted_period.planned_expenses.count() == 1
 
 
 def test_member_cannot_delete_a_month_or_another_households_month() -> None:

@@ -172,6 +172,7 @@ class MonthlyPeriod(TimestampedModel):
     year = models.PositiveSmallIntegerField()
     month = models.PositiveSmallIntegerField()
     savings_target = models.DecimalField(max_digits=14, decimal_places=2, default=ZERO)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-year", "-month"]

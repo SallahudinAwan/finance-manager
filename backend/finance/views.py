@@ -257,7 +257,7 @@ class MonthViewSet(
         if not household:
             return MonthlyPeriod.objects.none()
         return (
-            MonthlyPeriod.objects.filter(household=household)
+            MonthlyPeriod.objects.filter(household=household, is_deleted=False)
             .prefetch_related(
                 "income_plans__ledger_entries",
                 "planned_expenses__ledger_entries",
@@ -271,7 +271,12 @@ class MonthViewSet(
     @action(detail=False, methods=["get"])
     def current(self, request) -> Response:
         period = current_period(user_household(request.user))
-        period = self.get_queryset().get(pk=period.pk)
+        if period.is_deleted:
+            period = self.get_queryset().first()
+            if period is None:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        else:
+            period = self.get_queryset().get(pk=period.pk)
         return Response(self.get_serializer(period).data)
 
     @action(detail=False, methods=["get"], url_path="by-label")
@@ -288,7 +293,8 @@ class MonthViewSet(
         period = queryset.first()
         if period is None and is_owner(request.user):
             generated = generate_month(user_household(request.user), year, month)
-            period = self.get_queryset().get(pk=generated.pk)
+            if not generated.is_deleted:
+                period = self.get_queryset().get(pk=generated.pk)
         if period is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(self.get_serializer(period).data)
@@ -302,7 +308,12 @@ class MonthViewSet(
                 {"detail": "Enter a valid year and month."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        period = generate_month(user_household(request.user), year, month)
+        period = generate_month(
+            user_household(request.user),
+            year,
+            month,
+            restore_deleted=True,
+        )
         return Response(self.get_serializer(period).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"])
@@ -570,6 +581,8 @@ class DashboardView(APIView):
             try:
                 year, month = (int(part) for part in label.split("-", maxsplit=1))
                 period = generate_month(household, year, month)
+                if period.is_deleted:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
             except (TypeError, ValueError):
                 return Response(
                     {"detail": "Use month=YYYY-MM."},
@@ -577,6 +590,10 @@ class DashboardView(APIView):
                 )
         else:
             period = current_period(household)
+            if period.is_deleted:
+                period = household.periods.filter(is_deleted=False).first()
+                if period is None:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(dashboard_data(household, period))
 
 
@@ -771,7 +788,10 @@ class BackupExportView(APIView):
                     "expense_templates": RecurringExpenseSerializer(
                         household.expense_templates.all(), many=True
                     ).data,
-                    "periods": [period_summary(period) for period in household.periods.all()],
+                    "periods": [
+                        period_summary(period)
+                        for period in household.periods.filter(is_deleted=False)
+                    ],
                     "savings_goals": SavingsGoalSerializer(
                         household.savings_goals.all(), many=True
                     ).data,

@@ -1,0 +1,495 @@
+{% load i18n %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>{% block head_title %}{% trans "Sign in" %}{% endblock head_title %} · Finance Manager</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f3f6fb;
+        --surface: rgba(255, 255, 255, 0.96);
+        --surface-soft: #f7f9fc;
+        --text: #16213e;
+        --muted: #68738b;
+        --faint: #929bb0;
+        --border: #dfe5ef;
+        --navy: #172351;
+        --indigo: #4f46e5;
+        --indigo-soft: #eef0ff;
+        --emerald: #0f9f75;
+        --shadow: 0 28px 80px rgba(27, 39, 82, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background:
+          radial-gradient(circle at 8% 8%, rgba(99, 102, 241, 0.12), transparent 30rem),
+          radial-gradient(circle at 92% 92%, rgba(16, 185, 129, 0.09), transparent 28rem),
+          var(--page);
+      }
+
+      .page {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: minmax(340px, 0.82fr) minmax(500px, 1.18fr);
+      }
+
+      .story {
+        position: relative;
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        overflow: hidden;
+        padding: clamp(30px, 5vw, 68px);
+        color: white;
+        background:
+          radial-gradient(circle at 85% 18%, rgba(99, 102, 241, 0.42), transparent 20rem),
+          radial-gradient(circle at 12% 88%, rgba(16, 185, 129, 0.2), transparent 22rem),
+          linear-gradient(150deg, #182655 0%, #101a3d 56%, #0c1430 100%);
+      }
+
+      .story::after {
+        position: absolute;
+        right: -140px;
+        bottom: -150px;
+        width: 420px;
+        height: 420px;
+        content: "";
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 54px rgba(255, 255, 255, 0.025),
+          0 0 0 108px rgba(255, 255, 255, 0.018);
+      }
+
+      .brand {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 11px;
+        color: inherit;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        color: white;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 12px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+        backdrop-filter: blur(10px);
+      }
+
+      .story-content {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 510px);
+        margin: auto 0;
+        padding: 72px 0;
+      }
+
+      .story-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 20px;
+        color: #a7f3d0;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .story h2 {
+        max-width: 490px;
+        margin: 0;
+        font-size: clamp(34px, 4vw, 55px);
+        line-height: 1.04;
+        letter-spacing: -0.052em;
+      }
+
+      .story-copy {
+        max-width: 450px;
+        margin: 22px 0 30px;
+        color: rgba(232, 237, 255, 0.72);
+        font-size: 15px;
+        line-height: 1.75;
+      }
+
+      .benefits {
+        display: grid;
+        gap: 14px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .benefits li {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .check {
+        display: grid;
+        width: 23px;
+        height: 23px;
+        flex: 0 0 auto;
+        place-items: center;
+        color: #6ee7b7;
+        background: rgba(16, 185, 129, 0.13);
+        border: 1px solid rgba(110, 231, 183, 0.18);
+        border-radius: 50%;
+      }
+
+      .story-footer {
+        position: relative;
+        z-index: 1;
+        color: rgba(218, 225, 249, 0.48);
+        font-size: 11px;
+      }
+
+      .auth-area {
+        display: grid;
+        min-height: 100vh;
+        grid-template-rows: auto 1fr auto;
+        padding: 28px clamp(24px, 6vw, 84px);
+      }
+
+      .back-link {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .back-link:hover {
+        color: var(--text);
+      }
+
+      .auth-main {
+        display: grid;
+        place-items: center;
+        padding: 42px 0;
+      }
+
+      .card {
+        width: min(100%, 470px);
+        padding: clamp(30px, 5vw, 46px);
+        background: var(--surface);
+        border: 1px solid rgba(223, 229, 239, 0.92);
+        border-radius: 25px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .icon {
+        display: grid;
+        width: 58px;
+        height: 58px;
+        margin-bottom: 24px;
+        place-items: center;
+        color: var(--indigo);
+        background: var(--indigo-soft);
+        border: 1px solid rgba(79, 70, 229, 0.11);
+        border-radius: 18px;
+      }
+
+      .eyebrow {
+        margin-bottom: 9px;
+        color: var(--emerald);
+        font-size: 10px;
+        font-weight: 850;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--text);
+        font-size: clamp(28px, 4vw, 36px);
+        line-height: 1.12;
+        letter-spacing: -0.045em;
+      }
+
+      .subtitle {
+        margin: 14px 0 28px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .google-button,
+      .secondary-button {
+        display: inline-flex;
+        min-height: 49px;
+        align-items: center;
+        justify-content: center;
+        gap: 11px;
+        padding: 12px 18px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 760;
+        text-decoration: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease,
+          border-color 160ms ease;
+      }
+
+      .google-button {
+        color: #24304e;
+        background: white;
+        border: 1px solid #d7ddea;
+        box-shadow: 0 8px 22px rgba(30, 42, 83, 0.09);
+      }
+
+      .google-button:hover,
+      .secondary-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .google-button:hover {
+        border-color: #bfc8d9;
+        box-shadow: 0 11px 26px rgba(30, 42, 83, 0.13);
+      }
+
+      .secondary-button {
+        min-height: 44px;
+        color: var(--muted);
+        background: transparent;
+        border: 1px solid transparent;
+      }
+
+      .secondary-button:hover {
+        color: var(--text);
+        background: var(--surface-soft);
+        border-color: var(--border);
+      }
+
+      .trust-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin: 23px 0 0;
+        padding-top: 20px;
+        color: var(--faint);
+        font-size: 11px;
+        line-height: 1.55;
+        border-top: 1px solid var(--border);
+      }
+
+      .trust-note svg {
+        flex: 0 0 auto;
+        margin-top: 1px;
+        color: var(--emerald);
+      }
+
+      .legal {
+        color: var(--faint);
+        font-size: 10px;
+        line-height: 1.6;
+        text-align: center;
+      }
+
+      .legal a {
+        color: inherit;
+        text-underline-offset: 2px;
+      }
+
+      .back-link:focus-visible,
+      .brand:focus-visible,
+      .google-button:focus-visible,
+      .secondary-button:focus-visible,
+      .legal a:focus-visible {
+        outline: 3px solid rgba(99, 102, 241, 0.28);
+        outline-offset: 3px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #0d1222;
+          --surface: rgba(20, 27, 48, 0.96);
+          --surface-soft: #171f36;
+          --text: #f3f5fb;
+          --muted: #a8b0c3;
+          --faint: #7f899f;
+          --border: #2a3550;
+          --indigo: #a5b4fc;
+          --indigo-soft: rgba(99, 102, 241, 0.16);
+          --emerald: #6ee7b7;
+          --shadow: 0 30px 82px rgba(0, 0, 0, 0.35);
+        }
+
+        .card {
+          border-color: var(--border);
+        }
+
+        .google-button {
+          color: var(--text);
+          background: #1a233b;
+          border-color: #34415f;
+          box-shadow: none;
+        }
+
+        .google-button:hover {
+          border-color: #596684;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+
+        .story {
+          min-height: auto;
+          padding: 24px clamp(20px, 6vw, 54px);
+          background: linear-gradient(145deg, #182655, #101a3d);
+        }
+
+        .story-content,
+        .story-footer {
+          display: none;
+        }
+
+        .auth-area {
+          min-height: calc(100vh - 86px);
+        }
+      }
+
+      @media (max-width: 520px) {
+        .story {
+          padding: 20px;
+        }
+
+        .auth-area {
+          padding: 20px 16px;
+        }
+
+        .auth-main {
+          padding: 28px 0;
+        }
+
+        .card {
+          border-radius: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <aside class="story">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10h18"></path>
+              <path d="M5 10v8"></path>
+              <path d="M9 10v8"></path>
+              <path d="M15 10v8"></path>
+              <path d="M19 10v8"></path>
+              <path d="M3 18h18"></path>
+              <path d="m12 3 9 5H3l9-5Z"></path>
+            </svg>
+          </span>
+          Finance Manager
+        </a>
+
+        <div class="story-content">
+          <div class="story-kicker">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"></path>
+            </svg>
+            Calm money management
+          </div>
+          <h2>One clear place for your whole financial month.</h2>
+          <p class="story-copy">
+            Plan bills, protect savings, understand what is safe to spend, and keep your
+            actual bank balance reconciled.
+          </p>
+          <ul class="benefits">
+            <li>
+              <span class="check" aria-hidden="true">✓</span>
+              Private personal spending for every household member
+            </li>
+            <li>
+              <span class="check" aria-hidden="true">✓</span>
+              Monthly plans, partial payments, and carry-forward balances
+            </li>
+            <li>
+              <span class="check" aria-hidden="true">✓</span>
+              Secure exports with no bank connection required
+            </li>
+          </ul>
+        </div>
+
+        <div class="story-footer">Designed for PKR households · Asia/Karachi</div>
+      </aside>
+
+      <section class="auth-area">
+        <a class="back-link" href="/">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+          Back to home
+        </a>
+
+        <main class="auth-main">
+          <section class="card" aria-labelledby="auth-title">
+            <div class="icon" aria-hidden="true">
+              <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            {% block content %}{% endblock content %}
+          </section>
+        </main>
+
+        <div class="legal">
+          By continuing, you agree to the
+          <a href="/terms">Terms</a>
+          and
+          <a href="/privacy">Privacy Policy</a>.
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

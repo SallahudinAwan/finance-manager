@@ -1,0 +1,341 @@
+{% load i18n %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>{% trans "Sign out" %} · Finance Manager</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f4f7fc;
+        --surface: rgba(255, 255, 255, 0.94);
+        --surface-soft: #f7f8fc;
+        --text: #15213f;
+        --muted: #68738c;
+        --faint: #929bb0;
+        --border: #dfe5f0;
+        --navy: #172351;
+        --indigo: #4f46e5;
+        --indigo-soft: #eef0ff;
+        --shadow: 0 24px 70px rgba(26, 38, 82, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background:
+          radial-gradient(circle at 15% 12%, rgba(99, 102, 241, 0.12), transparent 30rem),
+          radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.08), transparent 26rem),
+          var(--page);
+      }
+
+      .shell {
+        display: grid;
+        min-height: 100vh;
+        grid-template-rows: auto 1fr auto;
+        padding: 28px clamp(20px, 5vw, 72px);
+      }
+
+      .brand {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 10px;
+        color: var(--navy);
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        color: white;
+        background: linear-gradient(145deg, #293879, var(--navy));
+        border-radius: 11px;
+        box-shadow: 0 8px 18px rgba(23, 35, 81, 0.2);
+      }
+
+      main {
+        display: grid;
+        place-items: center;
+        padding: 42px 0;
+      }
+
+      .card {
+        width: min(100%, 460px);
+        padding: clamp(28px, 5vw, 42px);
+        text-align: center;
+        background: var(--surface);
+        border: 1px solid rgba(223, 229, 240, 0.9);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .logout-icon {
+        display: grid;
+        width: 62px;
+        height: 62px;
+        margin: 0 auto 22px;
+        place-items: center;
+        color: var(--indigo);
+        background: var(--indigo-soft);
+        border: 1px solid rgba(79, 70, 229, 0.12);
+        border-radius: 19px;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--text);
+        font-size: clamp(25px, 5vw, 32px);
+        line-height: 1.15;
+        letter-spacing: -0.045em;
+      }
+
+      .subtitle {
+        max-width: 350px;
+        margin: 13px auto 24px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .account {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 24px;
+        padding: 12px 14px;
+        text-align: left;
+        background: var(--surface-soft);
+        border: 1px solid var(--border);
+        border-radius: 13px;
+      }
+
+      .avatar {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+        place-items: center;
+        color: white;
+        font-size: 12px;
+        font-weight: 800;
+        background: linear-gradient(145deg, #6366f1, #4338ca);
+        border-radius: 50%;
+      }
+
+      .account span {
+        display: block;
+        color: var(--faint);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .account strong {
+        display: block;
+        margin-top: 2px;
+        overflow: hidden;
+        color: var(--text);
+        font-size: 13px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 46px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 11px 18px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 750;
+        text-decoration: none;
+        border-radius: 11px;
+        cursor: pointer;
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease,
+          border-color 160ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .primary {
+        color: white;
+        background: linear-gradient(135deg, #263675, var(--navy));
+        border: 1px solid var(--navy);
+        box-shadow: 0 10px 22px rgba(23, 35, 81, 0.2);
+      }
+
+      .secondary {
+        color: var(--text);
+        background: transparent;
+        border: 1px solid var(--border);
+      }
+
+      .button:focus-visible,
+      .brand:focus-visible {
+        outline: 3px solid rgba(99, 102, 241, 0.28);
+        outline-offset: 3px;
+      }
+
+      .security-note {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin: 20px 0 0;
+        color: var(--faint);
+        font-size: 11px;
+      }
+
+      footer {
+        color: var(--faint);
+        font-size: 11px;
+        text-align: center;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #0d1222;
+          --surface: rgba(20, 27, 48, 0.95);
+          --surface-soft: #171f36;
+          --text: #f2f4fb;
+          --muted: #a8b0c3;
+          --faint: #7f899f;
+          --border: #2a3550;
+          --navy: #8b92ff;
+          --indigo: #a5b4fc;
+          --indigo-soft: rgba(99, 102, 241, 0.16);
+          --shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+        }
+
+        .brand {
+          color: var(--text);
+        }
+
+        .brand-mark,
+        .primary {
+          background: linear-gradient(145deg, #4f46e5, #3730a3);
+        }
+
+        .primary {
+          border-color: #6366f1;
+        }
+
+        .card {
+          border-color: var(--border);
+        }
+      }
+
+      @media (max-width: 520px) {
+        .shell {
+          padding: 20px 16px;
+        }
+
+        main {
+          padding: 28px 0;
+        }
+
+        .card {
+          border-radius: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <a class="brand" href="/app">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10h18"></path>
+            <path d="M5 10v8"></path>
+            <path d="M9 10v8"></path>
+            <path d="M15 10v8"></path>
+            <path d="M19 10v8"></path>
+            <path d="M3 18h18"></path>
+            <path d="m12 3 9 5H3l9-5Z"></path>
+          </svg>
+        </span>
+        Finance Manager
+      </a>
+
+      <main>
+        <section class="card" aria-labelledby="logout-title">
+          <div class="logout-icon" aria-hidden="true">
+            <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 17l5-5-5-5"></path>
+              <path d="M15 12H3"></path>
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            </svg>
+          </div>
+          <h1 id="logout-title">{% trans "Sign out of Finance Manager?" %}</h1>
+          <p class="subtitle">
+            {% trans "Your financial data will stay safe. You’ll need to sign in with Google again to return." %}
+          </p>
+
+          {% if user.is_authenticated %}
+            <div class="account">
+              <div class="avatar" aria-hidden="true">{{ user.email|first|upper }}</div>
+              <div>
+                <span>{% trans "Signed in as" %}</span>
+                <strong>{{ user.email }}</strong>
+              </div>
+            </div>
+          {% endif %}
+
+          <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            {{ redirect_field }}
+            <button class="button primary" type="submit">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10 17l5-5-5-5"></path>
+                <path d="M15 12H3"></path>
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              </svg>
+              {% trans "Sign out securely" %}
+            </button>
+            <a class="button secondary" href="/app">{% trans "Return to dashboard" %}</a>
+          </form>
+
+          <p class="security-note">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect width="18" height="11" x="3" y="11" rx="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            {% trans "This only ends your current session." %}
+          </p>
+        </section>
+      </main>
+
+      <footer>Finance Manager · Private household finance</footer>
+    </div>
+  </body>
+</html>
