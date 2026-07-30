@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
+  CalendarPlus,
   CircleAlert,
   Landmark,
   PiggyBank,
@@ -19,7 +20,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, formatPkr, money } from "../api/client";
+import { ApiError, api, formatPkr, money } from "../api/client";
 import { EmptyState, ErrorPanel, MetricCard, PageHeader, ProgressBar, Skeleton } from "../components/ui";
 import type { Dashboard, Trend } from "../types";
 
@@ -27,6 +28,7 @@ export function DashboardPage() {
   const dashboard = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api<Dashboard>("/dashboard/"),
+    retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
   });
   const trends = useQuery({
     queryKey: ["trends"],
@@ -46,6 +48,34 @@ export function DashboardPage() {
     );
   }
   if (dashboard.isError || !dashboard.data) {
+    if (dashboard.error instanceof ApiError && dashboard.error.status === 404) {
+      return (
+        <>
+          <PageHeader
+            eyebrow="Overview"
+            title="No active month yet"
+            description="Your overview will appear as soon as you add or restore a monthly workspace."
+            actions={
+              <Link className="button primary" to="/app/month">
+                <CalendarPlus size={17} /> Add month
+              </Link>
+            }
+          />
+          <section className="panel">
+            <EmptyState
+              icon={<CalendarPlus size={24} />}
+              title="Start with a month"
+              description="Create a month to track income, household bills, personal spending, savings, and bank activity."
+              action={
+                <Link className="button primary" to="/app/month">
+                  Open monthly workspace <ArrowRight size={17} />
+                </Link>
+              }
+            />
+          </section>
+        </>
+      );
+    }
     return <ErrorPanel message="Please refresh or try again shortly." />;
   }
 
