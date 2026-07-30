@@ -7,11 +7,14 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from finance.models import (
+    BankReconciliation,
     HouseholdInvitation,
     LedgerEntry,
     Membership,
+    MonthlyPeriod,
     RecurringExpense,
     SavingsGoal,
+    SavingsMovement,
 )
 from finance.services import generate_month
 from finance.tests.factories import create_household, create_member
@@ -228,6 +231,90 @@ def test_owner_can_manually_create_and_populate_a_previous_month() -> None:
     assert generated.data["planned_expenses"][0]["remaining_amount"] == Decimal("38000.00")
     assert personal.status_code == 201
     assert savings.status_code == 201
+
+
+def test_owner_can_delete_a_complete_month_and_later_carryovers_recalculate() -> None:
+    owner, household = create_household()
+    template = RecurringExpense.objects.create(
+        household=household,
+        name="Electricity",
+        expected_amount=Decimal("5000.00"),
+        due_day=10,
+    )
+    goal = SavingsGoal.objects.create(household=household, name="Emergency")
+    july = generate_month(household, 2026, 7)
+    june = generate_month(household, 2026, 6)
+    june_bill = june.planned_expenses.get()
+    july_bill = july.planned_expenses.get()
+    SavingsMovement.objects.create(
+        household=household,
+        period=june,
+        created_by=owner,
+        kind=SavingsMovement.Kind.CONTRIBUTION,
+        destination_goal=goal,
+        date=date(2026, 6, 25),
+        amount=Decimal("10000.00"),
+    )
+    BankReconciliation.objects.create(
+        account=household.bank_account,
+        created_by=owner,
+        date=date(2026, 6, 30),
+        actual_balance=Decimal("322980.00"),
+        calculated_balance=Decimal("322980.00"),
+        variance=Decimal("0.00"),
+    )
+    client = APIClient()
+    client.force_authenticate(owner)
+    payment = client.post(
+        f"/api/v1/planned-expenses/{june_bill.id}/payments/",
+        {"amount": "7000.00", "date": "2026-06-10"},
+        format="json",
+    )
+    client.post(
+        "/api/v1/personal-expenses/",
+        {
+            "period": june.id,
+            "date": "2026-06-12",
+            "amount": "2500.00",
+            "description": "June private expense",
+        },
+        format="json",
+    )
+    july_bill.refresh_from_db()
+    assert payment.status_code == 201
+    assert july_bill.carryover_credit == Decimal("2000.00")
+
+    response = client.delete(f"/api/v1/months/{june.id}/")
+
+    july_bill.refresh_from_db()
+    assert response.status_code == 204
+    assert not MonthlyPeriod.objects.filter(id=june.id).exists()
+    assert not LedgerEntry.objects.filter(period_id=june.id).exists()
+    assert not SavingsMovement.objects.filter(period_id=june.id).exists()
+    assert not BankReconciliation.objects.filter(date=date(2026, 6, 30)).exists()
+    assert july_bill.carryover_credit == Decimal("0.00")
+    assert SavingsGoal.objects.filter(id=goal.id).exists()
+    assert RecurringExpense.objects.filter(id=template.id).exists()
+    audit = household.audit_events.get(action="month_deleted")
+    assert audit.metadata["month"] == "2026-06"
+    assert audit.metadata["ledger_entries"] == 2
+
+
+def test_member_cannot_delete_a_month_or_another_households_month() -> None:
+    owner, household = create_household()
+    member = create_member(household)
+    period = generate_month(household, 2026, 6)
+    other_owner, _ = create_household("other-owner@example.com")
+    client = APIClient()
+
+    client.force_authenticate(member)
+    member_response = client.delete(f"/api/v1/months/{period.id}/")
+    client.force_authenticate(other_owner)
+    other_household_response = client.delete(f"/api/v1/months/{period.id}/")
+
+    assert member_response.status_code == 403
+    assert other_household_response.status_code == 404
+    assert MonthlyPeriod.objects.filter(id=period.id).exists()
 
 
 def test_personal_transaction_edits_remain_private_to_the_creator() -> None:

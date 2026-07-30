@@ -152,6 +152,49 @@ def generate_month(household: Household, year: int, month: int) -> MonthlyPeriod
     return period
 
 
+@transaction.atomic
+def delete_month(period: MonthlyPeriod, actor: Any) -> dict[str, int]:
+    """Delete one complete monthly flow while preserving recurring templates."""
+    household = period.household
+    label = period.label
+    next_period = (
+        household.periods.filter(
+            Q(year__gt=period.year) | Q(year=period.year, month__gt=period.month)
+        )
+        .order_by("year", "month")
+        .first()
+    )
+    next_year, next_month = _adjacent_month(period.year, period.month, 1)
+    month_start = date(period.year, period.month, 1)
+    next_month_start = date(next_year, next_month, 1)
+    counts = {
+        "ledger_entries": period.ledger_entries.count(),
+        "savings_movements": period.savings_movements.count(),
+        "reconciliations": household.bank_account.reconciliations.filter(
+            date__gte=month_start,
+            date__lt=next_month_start,
+        ).count(),
+    }
+
+    period.ledger_entries.all().delete()
+    period.savings_movements.all().delete()
+    household.bank_account.reconciliations.filter(
+        date__gte=month_start,
+        date__lt=next_month_start,
+    ).delete()
+    period.delete()
+
+    if next_period:
+        refresh_expense_carryovers(household, next_period)
+    AuditEvent.objects.create(
+        household=household,
+        actor=actor,
+        action="month_deleted",
+        metadata={"month": label, **counts},
+    )
+    return counts
+
+
 def current_period(household: Household, today: date | None = None) -> MonthlyPeriod:
     if today is None:
         today = timezone.now().astimezone(ZoneInfo(household.timezone)).date()

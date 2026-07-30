@@ -63,6 +63,7 @@ from .services import (
     bank_calculated_balance,
     current_period,
     dashboard_data,
+    delete_month,
     generate_month,
     is_owner,
     period_summary,
@@ -245,10 +246,11 @@ class RecurringExpenseViewSet(HouseholdScopedViewSet):
 class MonthViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     serializer_class = MonthlyPeriodSerializer
-    permission_classes = [HasHousehold]
+    permission_classes = [OwnerWriteMemberRead]
 
     def get_queryset(self):
         household = user_household(self.request.user)
@@ -262,6 +264,9 @@ class MonthViewSet(
             )
             .order_by("-year", "-month")
         )
+
+    def perform_destroy(self, instance) -> None:
+        delete_month(instance, self.request.user)
 
     @action(detail=False, methods=["get"])
     def current(self, request) -> Response:

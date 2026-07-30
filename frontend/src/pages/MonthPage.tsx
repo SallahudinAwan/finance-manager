@@ -53,6 +53,7 @@ export function MonthPage() {
   const [paymentTarget, setPaymentTarget] = useState<number | null>(null);
   const [incomeTarget, setIncomeTarget] = useState<number | null>(null);
   const [addMonthOpen, setAddMonthOpen] = useState(false);
+  const [deleteMonthOpen, setDeleteMonthOpen] = useState(false);
   const [savingsOpen, setSavingsOpen] = useState(false);
   const [personalOpen, setPersonalOpen] = useState(false);
   const [personalEdit, setPersonalEdit] = useState<PersonalExpense | null>(null);
@@ -134,25 +135,69 @@ export function MonthPage() {
               </select>
             </label>
             {session.is_owner && (
-              <Modal
-                title="Add a previous month"
-                description="Create a monthly workspace from your recurring plan, then enter its complete historical flow."
-                trigger={
-                  <button className="button secondary">
-                    <CalendarPlus size={17} /> Add month
-                  </button>
-                }
-                open={addMonthOpen}
-                onOpenChange={setAddMonthOpen}
-              >
-                <AddMonthForm
-                  onCreated={async (created) => {
-                    setAddMonthOpen(false);
-                    await queryClient.invalidateQueries({ queryKey: ["months"] });
-                    navigate(`/app/month/${created.label}`);
-                  }}
-                />
-              </Modal>
+              <>
+                <Modal
+                  title="Add a previous month"
+                  description="Create a monthly workspace from your recurring plan, then enter its complete historical flow."
+                  trigger={
+                    <button className="button secondary">
+                      <CalendarPlus size={17} /> Add month
+                    </button>
+                  }
+                  open={addMonthOpen}
+                  onOpenChange={setAddMonthOpen}
+                >
+                  <AddMonthForm
+                    onCreated={async (created) => {
+                      setAddMonthOpen(false);
+                      await queryClient.invalidateQueries({ queryKey: ["months"] });
+                      navigate(`/app/month/${created.label}`);
+                    }}
+                  />
+                </Modal>
+                <Modal
+                  title={`Delete ${new Date(data.year, data.month - 1).toLocaleDateString(
+                    "en-PK",
+                    { month: "long", year: "numeric" },
+                  )}?`}
+                  description="This removes the complete financial flow for this month and cannot be undone."
+                  trigger={
+                    <button className="button danger">
+                      <Trash2 size={17} /> Delete month
+                    </button>
+                  }
+                  open={deleteMonthOpen}
+                  onOpenChange={setDeleteMonthOpen}
+                >
+                  <MonthDeleteConfirmation
+                    month={data}
+                    onDeleted={async () => {
+                      const fallback = months.data?.results.find(
+                        (period) => period.id !== data.id,
+                      );
+                      setDeleteMonthOpen(false);
+                      queryClient.removeQueries({
+                        queryKey: ["month", data.label],
+                        exact: true,
+                      });
+                      navigate(
+                        fallback ? `/app/month/${fallback.label}` : "/app/dashboard",
+                        { replace: true },
+                      );
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["months"] }),
+                        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+                        queryClient.invalidateQueries({ queryKey: ["personal-expenses"] }),
+                        queryClient.invalidateQueries({ queryKey: ["ledger"] }),
+                        queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+                        queryClient.invalidateQueries({ queryKey: ["trends"] }),
+                        queryClient.invalidateQueries({ queryKey: ["bank"] }),
+                      ]);
+                    }}
+                    onCancel={() => setDeleteMonthOpen(false)}
+                  />
+                </Modal>
+              </>
             )}
             <Modal
               title="Add a private expense"
@@ -620,6 +665,69 @@ function AddMonthForm({ onCreated }: { onCreated: (month: Month) => Promise<void
         <CalendarPlus size={17} />
         {mutation.isPending ? "Creating…" : "Create monthly workspace"}
       </button>
+    </form>
+  );
+}
+
+function MonthDeleteConfirmation({
+  month,
+  onDeleted,
+  onCancel,
+}: {
+  month: Month;
+  onDeleted: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [confirmation, setConfirmation] = useState("");
+  const mutation = useMutation({
+    mutationFn: () => deleteJson(`/months/${month.id}/`),
+    onSuccess: onDeleted,
+  });
+
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (confirmation === month.label) mutation.mutate();
+      }}
+    >
+      <div className="month-delete-warning">
+        <strong>This deletes:</strong>
+        <ul>
+          <li>All income and shared bank transactions recorded in this month</li>
+          <li>Every member’s private expenses for this month</li>
+          <li>Savings movements and bank reconciliations dated in this month</li>
+          <li>The month’s income and household-expense plan snapshots</li>
+        </ul>
+        <p>Your recurring templates and savings goals will remain unchanged.</p>
+      </div>
+      <label>
+        Type <strong>{month.label}</strong> to confirm
+        <input
+          required
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+          placeholder={month.label}
+          autoComplete="off"
+        />
+      </label>
+      {mutation.isError && (
+        <p className="form-error">Could not delete this month. Please try again.</p>
+      )}
+      <div className="dialog-actions">
+        <button className="button secondary" type="button" onClick={onCancel}>
+          Keep month
+        </button>
+        <button
+          className="button danger"
+          type="submit"
+          disabled={mutation.isPending || confirmation !== month.label}
+        >
+          <Trash2 size={16} />
+          {mutation.isPending ? "Deleting…" : "Delete complete month"}
+        </button>
+      </div>
     </form>
   );
 }

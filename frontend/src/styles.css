@@ -1234,6 +1234,29 @@ p {
   line-height: 1.55;
 }
 
+.month-delete-warning {
+  padding: 13px 15px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.55;
+  background: var(--red-soft);
+  border: 1px solid color-mix(in srgb, var(--red) 22%, transparent);
+  border-radius: 10px;
+}
+
+.month-delete-warning strong {
+  color: var(--red);
+}
+
+.month-delete-warning ul {
+  margin: 7px 0;
+  padding-left: 18px;
+}
+
+.month-delete-warning p {
+  margin: 7px 0 0;
+}
+
 .delete-transaction-summary {
   display: grid;
   grid-template-columns: 1fr auto;
