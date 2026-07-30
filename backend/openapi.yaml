@@ -905,6 +905,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/MonthlyPeriod'
           description: ''
+    delete:
+      operationId: v1_months_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this monthly period.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/months/{id}/summary/:
     get:
       operationId: v1_months_summary_retrieve
@@ -2546,6 +2562,22 @@ components:
           maximum: 9223372036854775807
           minimum: 0
           format: int64
+        actual_paid_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        carryover_credit:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
         paid_amount:
           type: number
           format: double
@@ -2555,6 +2587,14 @@ components:
           exclusiveMinimum: true
           readOnly: true
         remaining_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        overpaid_amount:
           type: number
           format: double
           maximum: 1000000000000
@@ -2743,6 +2783,22 @@ components:
           maximum: 9223372036854775807
           minimum: 0
           format: int64
+        actual_paid_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        carryover_credit:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
         paid_amount:
           type: number
           format: double
@@ -2752,6 +2808,14 @@ components:
           exclusiveMinimum: true
           readOnly: true
         remaining_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        overpaid_amount:
           type: number
           format: double
           maximum: 1000000000000
@@ -2771,11 +2835,14 @@ components:
           format: date-time
           readOnly: true
       required:
+      - actual_paid_amount
+      - carryover_credit
       - created_at
       - due_date
       - expected_amount
       - id
       - name
+      - overpaid_amount
       - paid_amount
       - remaining_amount
       - status

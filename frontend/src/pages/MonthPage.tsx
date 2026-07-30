@@ -1,20 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowRightLeft,
   ArrowDownToLine,
+  CalendarPlus,
   CalendarDays,
   Check,
   CircleDollarSign,
   LockKeyhole,
+  Pencil,
   Plus,
   Receipt,
+  Trash2,
   WalletCards,
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { api, formatPkr, money, postJson } from "../api/client";
+import { api, deleteJson, formatPkr, money, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
+import { SavingsMovementForm } from "../components/SavingsMovementForm";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
-import type { Month, Paginated, Session } from "../types";
+import type { Month, Paginated, SavingsGoal, Session } from "../types";
 
 interface PersonalExpense {
   id: number;
@@ -25,6 +30,21 @@ interface PersonalExpense {
   notes: string;
 }
 
+interface LedgerEntry {
+  id: number;
+  period: number;
+  entry_type: "income" | "household_expense" | "adjustment";
+  direction: "credit" | "debit";
+  date: string;
+  amount: number | string;
+  description: string;
+  notes: string;
+}
+
+type DeleteTarget =
+  | { kind: "shared"; transaction: LedgerEntry }
+  | { kind: "personal"; transaction: PersonalExpense };
+
 export function MonthPage() {
   const { session } = useOutletContext<{ session: Session }>();
   const { label } = useParams();
@@ -32,7 +52,13 @@ export function MonthPage() {
   const queryClient = useQueryClient();
   const [paymentTarget, setPaymentTarget] = useState<number | null>(null);
   const [incomeTarget, setIncomeTarget] = useState<number | null>(null);
+  const [addMonthOpen, setAddMonthOpen] = useState(false);
+  const [deleteMonthOpen, setDeleteMonthOpen] = useState(false);
+  const [savingsOpen, setSavingsOpen] = useState(false);
   const [personalOpen, setPersonalOpen] = useState(false);
+  const [personalEdit, setPersonalEdit] = useState<PersonalExpense | null>(null);
+  const [sharedEdit, setSharedEdit] = useState<LedgerEntry | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const month = useQuery({
     queryKey: ["month", label ?? "current"],
     queryFn: () =>
@@ -46,12 +72,25 @@ export function MonthPage() {
     queryKey: ["personal-expenses"],
     queryFn: () => api<Paginated<PersonalExpense>>("/personal-expenses/"),
   });
+  const shared = useQuery({
+    queryKey: ["ledger"],
+    queryFn: () => api<Paginated<LedgerEntry>>("/ledger/"),
+    enabled: session.is_owner,
+  });
+  const goals = useQuery({
+    queryKey: ["savings-goals"],
+    queryFn: () => api<Paginated<SavingsGoal>>("/savings-goals/"),
+    enabled: session.is_owner,
+  });
 
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["month"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       queryClient.invalidateQueries({ queryKey: ["personal-expenses"] }),
+      queryClient.invalidateQueries({ queryKey: ["ledger"] }),
+      queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+      queryClient.invalidateQueries({ queryKey: ["trends"] }),
     ]);
   };
 
@@ -95,25 +134,90 @@ export function MonthPage() {
                 ))}
               </select>
             </label>
+            {session.is_owner && (
+              <>
+                <Modal
+                  title="Add a previous month"
+                  description="Create a monthly workspace from your recurring plan, then enter its complete historical flow."
+                  trigger={
+                    <button className="button secondary">
+                      <CalendarPlus size={17} /> Add month
+                    </button>
+                  }
+                  open={addMonthOpen}
+                  onOpenChange={setAddMonthOpen}
+                >
+                  <AddMonthForm
+                    onCreated={async (created) => {
+                      setAddMonthOpen(false);
+                      await queryClient.invalidateQueries({ queryKey: ["months"] });
+                      navigate(`/app/month/${created.label}`);
+                    }}
+                  />
+                </Modal>
+                <Modal
+                  title={`Delete ${new Date(data.year, data.month - 1).toLocaleDateString(
+                    "en-PK",
+                    { month: "long", year: "numeric" },
+                  )}?`}
+                  description="This removes the complete financial flow for this month and cannot be undone."
+                  trigger={
+                    <button className="button danger">
+                      <Trash2 size={17} /> Delete month
+                    </button>
+                  }
+                  open={deleteMonthOpen}
+                  onOpenChange={setDeleteMonthOpen}
+                >
+                  <MonthDeleteConfirmation
+                    month={data}
+                    onDeleted={async () => {
+                      const fallback = months.data?.results.find(
+                        (period) => period.id !== data.id,
+                      );
+                      setDeleteMonthOpen(false);
+                      queryClient.removeQueries({
+                        queryKey: ["month", data.label],
+                        exact: true,
+                      });
+                      navigate(
+                        fallback ? `/app/month/${fallback.label}` : "/app/dashboard",
+                        { replace: true },
+                      );
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["months"] }),
+                        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+                        queryClient.invalidateQueries({ queryKey: ["personal-expenses"] }),
+                        queryClient.invalidateQueries({ queryKey: ["ledger"] }),
+                        queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+                        queryClient.invalidateQueries({ queryKey: ["trends"] }),
+                        queryClient.invalidateQueries({ queryKey: ["bank"] }),
+                      ]);
+                    }}
+                    onCancel={() => setDeleteMonthOpen(false)}
+                  />
+                </Modal>
+              </>
+            )}
             <Modal
-            title="Add a private expense"
-            description="Only you can see the entry details. The household sees an anonymous combined total."
-            trigger={
-              <button className="button primary">
-                <Plus size={17} /> Personal expense
-              </button>
-            }
-            open={personalOpen}
-            onOpenChange={setPersonalOpen}
-          >
-            <PersonalExpenseForm
-              period={data.id}
-              defaultDate={`${data.label}-01`}
-              onSaved={async () => {
-                setPersonalOpen(false);
-                await refresh();
-              }}
-            />
+              title="Add a private expense"
+              description="Only you can see the entry details. The household sees an anonymous combined total."
+              trigger={
+                <button className="button primary">
+                  <Plus size={17} /> Personal expense
+                </button>
+              }
+              open={personalOpen}
+              onOpenChange={setPersonalOpen}
+            >
+              <PersonalExpenseForm
+                period={data.id}
+                defaultDate={`${data.label}-01`}
+                onSaved={async () => {
+                  setPersonalOpen(false);
+                  await refresh();
+                }}
+              />
             </Modal>
           </div>
         }
@@ -135,7 +239,17 @@ export function MonthPage() {
         <div>
           <span>Savings target</span>
           <strong>{formatPkr(data.savings_target)}</strong>
-          <small>Reserved before personal spending</small>
+          {session.is_owner ? (
+            <button
+              className="table-action summary-action"
+              onClick={() => setSavingsOpen(true)}
+              disabled={!goals.data?.results.length}
+            >
+              <ArrowRightLeft size={14} /> Allocate for this month
+            </button>
+          ) : (
+            <small>Reserved before personal spending</small>
+          )}
         </div>
       </section>
 
@@ -196,6 +310,7 @@ export function MonthPage() {
                   <th>Due</th>
                   <th>Expected</th>
                   <th>Paid</th>
+                  <th>Unpaid</th>
                   <th>Status</th>
                   <th />
                 </tr>
@@ -214,7 +329,19 @@ export function MonthPage() {
                       )}
                     </td>
                     <td>{formatPkr(expense.expected_amount)}</td>
-                    <td>{formatPkr(expense.paid_amount)}</td>
+                    <td>
+                      {formatPkr(expense.paid_amount)}
+                      {money(expense.carryover_credit) > 0 && (
+                        <small className="carryover-note">
+                          {formatPkr(expense.carryover_credit)} carried forward
+                        </small>
+                      )}
+                    </td>
+                    <td>
+                      <strong className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}>
+                        {formatPkr(expense.remaining_amount)}
+                      </strong>
+                    </td>
                     <td>
                       <span className={`status-chip ${expense.status}`}>
                         {expense.status}
@@ -237,6 +364,81 @@ export function MonthPage() {
           </div>
         </section>
       </div>
+
+      {session.is_owner && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">Actual bank movements</span>
+              <h2>Shared transactions</h2>
+            </div>
+            <small>Income, bill payments, and reconciliation adjustments</small>
+          </div>
+          {shared.data?.results.some((item) => item.period === data.id) ? (
+            <div className="expense-table-wrap">
+              <table className="expense-table transaction-table">
+                <thead>
+                  <tr>
+                    <th>Transaction</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shared.data.results
+                    .filter((item) => item.period === data.id)
+                    .map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <strong>{item.description}</strong>
+                          {item.notes && <small className="transaction-note">{item.notes}</small>}
+                        </td>
+                        <td>
+                          <span className={`status-chip ${item.direction}`}>
+                            {transactionType(item.entry_type)}
+                          </span>
+                        </td>
+                        <td>
+                          {new Date(`${item.date}T00:00:00`).toLocaleDateString("en-PK", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </td>
+                        <td className={item.direction === "credit" ? "positive-text" : ""}>
+                          {item.direction === "credit" ? "+" : "−"}
+                          {formatPkr(item.amount)}
+                        </td>
+                        <td>
+                          <div className="transaction-actions">
+                            <button className="table-action" onClick={() => setSharedEdit(item)}>
+                              <Pencil size={13} /> Edit
+                            </button>
+                            <button
+                              className="table-action danger-action"
+                              onClick={() =>
+                                setDeleteTarget({ kind: "shared", transaction: item })
+                              }
+                            >
+                              <Trash2 size={13} /> Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              icon={<Receipt size={23} />}
+              title="No shared transactions yet"
+              description="Received income and household payments will appear here."
+            />
+          )}
+        </section>
+      )}
 
       <section className="panel">
         <div className="panel-heading">
@@ -262,6 +464,24 @@ export function MonthPage() {
                     <small>{new Date(`${item.date}T00:00:00`).toLocaleDateString()}</small>
                   </div>
                   <b>{formatPkr(item.amount)}</b>
+                  <div className="personal-actions">
+                    <button
+                      className="icon-button personal-edit"
+                      aria-label={`Edit ${item.description}`}
+                      onClick={() => setPersonalEdit(item)}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="icon-button personal-delete"
+                      aria-label={`Delete ${item.description}`}
+                      onClick={() =>
+                        setDeleteTarget({ kind: "personal", transaction: item })
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
           </div>
@@ -273,6 +493,31 @@ export function MonthPage() {
           />
         )}
       </section>
+
+      <Modal
+        title={`Move savings for ${new Date(data.year, data.month - 1).toLocaleDateString(
+          "en-PK",
+          { month: "long", year: "numeric" },
+        )}`}
+        description="This records a virtual allocation for the selected month without creating another bank transaction."
+        trigger={<span />}
+        open={savingsOpen}
+        onOpenChange={setSavingsOpen}
+      >
+        {goals.data?.results.length ? (
+          <SavingsMovementForm
+            goals={goals.data.results}
+            period={data.id}
+            defaultDate={`${data.label}-01`}
+            onSaved={async () => {
+              setSavingsOpen(false);
+              await refresh();
+            }}
+          />
+        ) : (
+          <p className="form-error">Create a savings goal before allocating savings.</p>
+        )}
+      </Modal>
 
       <Modal
         title="Record a household payment"
@@ -297,6 +542,63 @@ export function MonthPage() {
       </Modal>
 
       <Modal
+        title="Edit shared transaction"
+        description="Correct the amount, date, or notes without changing what kind of transaction it is."
+        trigger={<span />}
+        open={sharedEdit !== null}
+        onOpenChange={(open) => !open && setSharedEdit(null)}
+      >
+        {sharedEdit && (
+          <TransactionEditForm
+            transaction={sharedEdit}
+            onSaved={async () => {
+              setSharedEdit(null);
+              await refresh();
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        title="Edit private expense"
+        description="Only you can see these details."
+        trigger={<span />}
+        open={personalEdit !== null}
+        onOpenChange={(open) => !open && setPersonalEdit(null)}
+      >
+        {personalEdit && (
+          <PersonalExpenseForm
+            period={personalEdit.period}
+            defaultDate={personalEdit.date}
+            expense={personalEdit}
+            onSaved={async () => {
+              setPersonalEdit(null);
+              await refresh();
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        title="Delete transaction?"
+        description="This permanently removes the transaction and immediately recalculates every affected balance."
+        trigger={<span />}
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        {deleteTarget && (
+          <TransactionDeleteConfirmation
+            target={deleteTarget}
+            onDeleted={async () => {
+              setDeleteTarget(null);
+              await refresh();
+            }}
+            onCancel={() => setDeleteTarget(null)}
+          />
+        )}
+      </Modal>
+
+      <Modal
         title="Record received income"
         description="Record the actual amount that reached your bank."
         trigger={<span />}
@@ -316,6 +618,246 @@ export function MonthPage() {
         )}
       </Modal>
     </>
+  );
+}
+
+function previousMonthLabel() {
+  const previous = new Date();
+  previous.setDate(1);
+  previous.setMonth(previous.getMonth() - 1);
+  return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function AddMonthForm({ onCreated }: { onCreated: (month: Month) => Promise<void> }) {
+  const [monthValue, setMonthValue] = useState(previousMonthLabel);
+  const mutation = useMutation({
+    mutationFn: () => {
+      const [year, month] = monthValue.split("-").map(Number);
+      return postJson<Month>("/months/generate/", { year, month });
+    },
+    onSuccess: onCreated,
+  });
+
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        mutation.mutate();
+      }}
+    >
+      <label>
+        Month
+        <input
+          required
+          type="month"
+          min="2000-01"
+          max="2100-12"
+          value={monthValue}
+          onChange={(event) => setMonthValue(event.target.value)}
+        />
+      </label>
+      <p className="field-help">
+        Income, bills, due dates, and the savings target are copied from your recurring plan.
+      </p>
+      {mutation.isError && <p className="form-error">Could not create this month.</p>}
+      <button className="button primary full" disabled={mutation.isPending}>
+        <CalendarPlus size={17} />
+        {mutation.isPending ? "Creating…" : "Create monthly workspace"}
+      </button>
+    </form>
+  );
+}
+
+function MonthDeleteConfirmation({
+  month,
+  onDeleted,
+  onCancel,
+}: {
+  month: Month;
+  onDeleted: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [confirmation, setConfirmation] = useState("");
+  const mutation = useMutation({
+    mutationFn: () => deleteJson(`/months/${month.id}/`),
+    onSuccess: onDeleted,
+  });
+
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (confirmation === month.label) mutation.mutate();
+      }}
+    >
+      <div className="month-delete-warning">
+        <strong>This deletes:</strong>
+        <ul>
+          <li>All income and shared bank transactions recorded in this month</li>
+          <li>Every member’s private expenses for this month</li>
+          <li>Savings movements and bank reconciliations dated in this month</li>
+          <li>The month’s income and household-expense plan snapshots</li>
+        </ul>
+        <p>Your recurring templates and savings goals will remain unchanged.</p>
+      </div>
+      <label>
+        Type <strong>{month.label}</strong> to confirm
+        <input
+          required
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+          placeholder={month.label}
+          autoComplete="off"
+        />
+      </label>
+      {mutation.isError && (
+        <p className="form-error">Could not delete this month. Please try again.</p>
+      )}
+      <div className="dialog-actions">
+        <button className="button secondary" type="button" onClick={onCancel}>
+          Keep month
+        </button>
+        <button
+          className="button danger"
+          type="submit"
+          disabled={mutation.isPending || confirmation !== month.label}
+        >
+          <Trash2 size={16} />
+          {mutation.isPending ? "Deleting…" : "Delete complete month"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function TransactionDeleteConfirmation({
+  target,
+  onDeleted,
+  onCancel,
+}: {
+  target: DeleteTarget;
+  onDeleted: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const mutation = useMutation({
+    mutationFn: () =>
+      deleteJson(
+        target.kind === "shared"
+          ? `/ledger/${target.transaction.id}/`
+          : `/personal-expenses/${target.transaction.id}/`,
+      ),
+    onSuccess: onDeleted,
+  });
+
+  return (
+    <div className="delete-confirmation">
+      <div className="delete-transaction-summary">
+        <span>{target.transaction.description}</span>
+        <strong>{formatPkr(target.transaction.amount)}</strong>
+        <small>
+          {new Date(`${target.transaction.date}T00:00:00`).toLocaleDateString("en-PK", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+        </small>
+      </div>
+      <p>
+        {target.kind === "shared"
+          ? "If this is a bill payment, its paid and remaining amounts will be updated."
+          : "This private expense will no longer count toward your spending totals."}
+      </p>
+      {mutation.isError && (
+        <p className="form-error">Could not delete this transaction. Please try again.</p>
+      )}
+      <div className="dialog-actions">
+        <button className="button secondary" type="button" onClick={onCancel}>
+          Keep transaction
+        </button>
+        <button
+          className="button danger"
+          type="button"
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate()}
+        >
+          <Trash2 size={16} />
+          {mutation.isPending ? "Deleting…" : "Delete permanently"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function transactionType(entryType: LedgerEntry["entry_type"]) {
+  if (entryType === "income") return "Income";
+  if (entryType === "household_expense") return "Household payment";
+  return "Adjustment";
+}
+
+function TransactionEditForm({
+  transaction,
+  onSaved,
+}: {
+  transaction: LedgerEntry;
+  onSaved: () => Promise<void>;
+}) {
+  const [amount, setAmount] = useState(String(transaction.amount));
+  const [dateValue, setDateValue] = useState(transaction.date);
+  const [notes, setNotes] = useState(transaction.notes);
+  const mutation = useMutation({
+    mutationFn: () =>
+      patchJson(`/ledger/${transaction.id}/`, {
+        amount,
+        date: dateValue,
+        notes,
+      }),
+    onSuccess: onSaved,
+  });
+
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        mutation.mutate();
+      }}
+    >
+      <label>
+        Amount
+        <div className="money-input">
+          <span>Rs</span>
+          <input
+            required
+            min="0.01"
+            step="0.01"
+            type="number"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+        </div>
+      </label>
+      <label>
+        Date
+        <input
+          required
+          type="date"
+          value={dateValue}
+          onChange={(event) => setDateValue(event.target.value)}
+        />
+      </label>
+      <label>
+        Notes <span className="optional">optional</span>
+        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+      </label>
+      {mutation.isError && (
+        <p className="form-error">Could not update this transaction. Check the date and amount.</p>
+      )}
+      <button className="button primary full" disabled={mutation.isPending}>
+        {mutation.isPending ? "Updating…" : "Update transaction"}
+      </button>
+    </form>
   );
 }
 
@@ -385,25 +927,31 @@ function MoneyMovementForm({
 function PersonalExpenseForm({
   period,
   defaultDate,
+  expense,
   onSaved,
 }: {
   period: number;
   defaultDate: string;
+  expense?: PersonalExpense;
   onSaved: () => Promise<void>;
 }) {
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState(expense?.description ?? "");
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : "");
   const [dateValue, setDateValue] = useState(defaultDate);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(expense?.notes ?? "");
   const mutation = useMutation({
-    mutationFn: () =>
-      postJson("/personal-expenses/", {
+    mutationFn: () => {
+      const body = {
         period,
         description,
         amount,
         date: dateValue,
         notes,
-      }),
+      };
+      return expense
+        ? patchJson(`/personal-expenses/${expense.id}/`, body)
+        : postJson("/personal-expenses/", body);
+    },
     onSuccess: onSaved,
   });
 
@@ -451,7 +999,11 @@ function PersonalExpenseForm({
       </label>
       {mutation.isError && <p className="form-error">Could not save this expense.</p>}
       <button className="button primary full" disabled={mutation.isPending}>
-        {mutation.isPending ? "Saving…" : "Add private expense"}
+        {mutation.isPending
+          ? "Saving…"
+          : expense
+            ? "Update private expense"
+            : "Add private expense"}
       </button>
     </form>
   );

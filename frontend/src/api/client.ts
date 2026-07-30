@@ -53,6 +53,10 @@ export function patchJson<T>(path: string, body: unknown): Promise<T> {
   return api<T>(path, { method: "PATCH", body: JSON.stringify(body) });
 }
 
+export function deleteJson(path: string): Promise<void> {
+  return api<void>(path, { method: "DELETE" });
+}
+
 export function money(value: unknown): number {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;

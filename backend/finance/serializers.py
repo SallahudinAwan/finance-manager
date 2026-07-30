@@ -122,8 +122,11 @@ class MonthlyIncomePlanSerializer(serializers.ModelSerializer):
 
 
 class PlannedExpenseSerializer(serializers.ModelSerializer):
+    actual_paid_amount = MoneyField(read_only=True)
+    carryover_credit = MoneyField(read_only=True)
     paid_amount = MoneyField(read_only=True)
     remaining_amount = MoneyField(read_only=True)
+    overpaid_amount = MoneyField(read_only=True)
     status = serializers.CharField(source="payment_status", read_only=True)
 
     class Meta:
@@ -134,8 +137,11 @@ class PlannedExpenseSerializer(serializers.ModelSerializer):
             "expected_amount",
             "due_date",
             "reminder_lead_days",
+            "actual_paid_amount",
+            "carryover_credit",
             "paid_amount",
             "remaining_amount",
+            "overpaid_amount",
             "status",
             "created_at",
             "updated_at",
@@ -164,6 +170,14 @@ class MonthlyPeriodSerializer(serializers.ModelSerializer):
 
 
 class LedgerEntrySerializer(serializers.ModelSerializer):
+    immutable_fields = {
+        "period",
+        "planned_income",
+        "planned_expense",
+        "entry_type",
+        "direction",
+    }
+
     class Meta:
         model = LedgerEntry
         fields = [
@@ -185,23 +199,51 @@ class LedgerEntrySerializer(serializers.ModelSerializer):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         request = self.context["request"]
         household = request.user.finance_membership.household
-        period = attrs.get("period") or getattr(self.instance, "period", None)
+        if self.instance:
+            changed_fields = {
+                field_name
+                for field_name in self.immutable_fields
+                if field_name in attrs and attrs[field_name] != getattr(self.instance, field_name)
+            }
+            if changed_fields:
+                raise serializers.ValidationError(
+                    {
+                        field_name: "This field cannot be changed after a transaction is recorded."
+                        for field_name in changed_fields
+                    }
+                )
+
+        def value(field_name: str):
+            return attrs.get(field_name, getattr(self.instance, field_name, None))
+
+        period = value("period")
         if period and period.household_id != household.id:
             raise serializers.ValidationError("Period does not belong to your household.")
         for field_name in ("planned_income", "planned_expense"):
-            value = attrs.get(field_name)
-            if value and value.period.household_id != household.id:
+            planned_item = value(field_name)
+            if planned_item and planned_item.period.household_id != household.id:
                 raise serializers.ValidationError(
                     {field_name: "This item does not belong to your household."}
                 )
+            if planned_item and period and planned_item.period_id != period.id:
+                raise serializers.ValidationError(
+                    {field_name: "This item does not belong to the transaction month."}
+                )
+        entry_date = value("date")
+        if (
+            period
+            and entry_date
+            and (entry_date.year, entry_date.month) != (period.year, period.month)
+        ):
+            raise serializers.ValidationError(
+                {"date": "Transaction date must be inside the selected month."}
+            )
         entry = LedgerEntry(
             household=household,
-            created_by=request.user,
+            created_by=getattr(self.instance, "created_by", request.user),
             **{
-                key: value
-                for key, value in attrs.items()
-                if key
-                in {
+                field_name: value(field_name)
+                for field_name in {
                     "period",
                     "planned_income",
                     "planned_expense",

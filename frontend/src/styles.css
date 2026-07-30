@@ -964,6 +964,17 @@ p {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.month-summary .summary-action {
+  width: fit-content;
+  margin-top: 3px;
+  color: #dce2ff;
+}
+
+.month-summary .summary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(250px, 0.75fr) minmax(0, 1.6fr);
@@ -1075,7 +1086,20 @@ p {
   background: color-mix(in srgb, #0ea5e9 10%, transparent);
 }
 
+.status-chip.credit {
+  color: var(--emerald);
+  background: var(--emerald-soft);
+}
+
+.status-chip.debit {
+  color: var(--indigo);
+  background: var(--indigo-soft);
+}
+
 .table-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 5px 0;
   color: var(--indigo);
   font-size: 9.5px;
@@ -1083,6 +1107,17 @@ p {
   cursor: pointer;
   background: none;
   border: 0;
+}
+
+.transaction-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.danger-action {
+  color: var(--red);
 }
 
 .personal-grid {
@@ -1093,7 +1128,7 @@ p {
 
 .personal-card {
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 34px 1fr auto auto;
   align-items: center;
   gap: 10px;
   padding: 12px;
@@ -1132,6 +1167,122 @@ p {
 
 .personal-card b {
   font-size: 10.5px;
+}
+
+.personal-card .personal-edit,
+.personal-card .personal-delete {
+  width: 30px;
+  height: 30px;
+}
+
+.personal-card .personal-edit {
+  color: var(--indigo);
+}
+
+.personal-card .personal-delete {
+  color: var(--red);
+}
+
+.personal-card .personal-actions {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 3px;
+}
+
+.transaction-table td:first-child strong,
+.transaction-note {
+  display: block;
+}
+
+.transaction-note {
+  max-width: 360px;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.carryover-note {
+  display: block;
+  margin-top: 3px;
+  color: var(--indigo) !important;
+  white-space: nowrap;
+}
+
+.positive-text {
+  color: var(--emerald) !important;
+  font-weight: 750;
+}
+
+.negative-text {
+  color: var(--red) !important;
+}
+
+.delete-confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.delete-confirmation > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+
+.month-delete-warning {
+  padding: 13px 15px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.55;
+  background: var(--red-soft);
+  border: 1px solid color-mix(in srgb, var(--red) 22%, transparent);
+  border-radius: 10px;
+}
+
+.month-delete-warning strong {
+  color: var(--red);
+}
+
+.month-delete-warning ul {
+  margin: 7px 0;
+  padding-left: 18px;
+}
+
+.month-delete-warning p {
+  margin: 7px 0 0;
+}
+
+.delete-transaction-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  padding: 14px;
+  background: var(--red-soft);
+  border: 1px solid color-mix(in srgb, var(--red) 18%, var(--border));
+  border-radius: 11px;
+}
+
+.delete-transaction-summary span,
+.delete-transaction-summary strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.delete-transaction-summary small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 9.5px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .dialog-overlay {
@@ -2314,6 +2465,8 @@ p {
   .review-strip { grid-template-columns: 1fr; }
   .wizard-actions .button { padding: 0 11px; }
   .expense-table { min-width: 690px; }
+  .dialog-actions { flex-direction: column-reverse; }
+  .dialog-actions .button { width: 100%; }
   .landing-nav { width: calc(100% - 28px); }
   .hero { width: calc(100% - 28px); }
   .hero h1 { font-size: 42px; }

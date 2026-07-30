@@ -235,6 +235,7 @@ class PlannedExpense(TimestampedModel):
     )
     name = models.CharField(max_length=120)
     expected_amount = models.DecimalField(max_digits=14, decimal_places=2)
+    carryover_credit = models.DecimalField(max_digits=14, decimal_places=2, default=ZERO)
     due_date = models.DateField()
     reminder_lead_days = models.PositiveSmallIntegerField(default=3)
 
@@ -244,19 +245,31 @@ class PlannedExpense(TimestampedModel):
             models.CheckConstraint(
                 condition=Q(expected_amount__gt=0),
                 name="planned_expense_positive_amount",
-            )
+            ),
+            models.CheckConstraint(
+                condition=Q(carryover_credit__gte=0),
+                name="planned_expense_nonnegative_carryover",
+            ),
         ]
 
     @property
-    def paid_amount(self) -> Decimal:
+    def actual_paid_amount(self) -> Decimal:
         return sum(
             (entry.amount for entry in self.ledger_entries.all()),
             start=ZERO,
         )
 
     @property
+    def paid_amount(self) -> Decimal:
+        return self.actual_paid_amount + self.carryover_credit
+
+    @property
     def remaining_amount(self) -> Decimal:
-        return self.expected_amount - self.paid_amount
+        return max(self.expected_amount - self.paid_amount, ZERO)
+
+    @property
+    def overpaid_amount(self) -> Decimal:
+        return max(self.paid_amount - self.expected_amount, ZERO)
 
     @property
     def payment_status(self) -> str:

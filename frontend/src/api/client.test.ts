@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, api, formatPkr, money } from "./client";
+import { ApiError, api, deleteJson, formatPkr, money } from "./client";
 
 describe("money helpers", () => {
   it("normalizes missing and invalid values", () => {
@@ -55,5 +55,21 @@ describe("api client", () => {
       status: 403,
       details: { detail: "Forbidden" },
     });
+  });
+
+  it("sends authenticated CSRF-protected deletes", async () => {
+    document.cookie = "csrftoken=delete-token";
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
+
+    await deleteJson("/ledger/42/");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/ledger/42/",
+      expect.objectContaining({ credentials: "include", method: "DELETE" }),
+    );
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(new Headers(request.headers).get("X-CSRFToken")).toBe("delete-token");
   });
 });
