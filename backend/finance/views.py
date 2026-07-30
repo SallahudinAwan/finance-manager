@@ -96,6 +96,7 @@ class SessionView(APIView):
         preference = UserPreference.objects.filter(user=request.user).first()
         user_data = UserSerializer(request.user).data
         user_data["preferred_language"] = preference.preferred_language if preference else None
+        user_data["tour_completed"] = preference.tour_completed if preference else False
         return Response(
             {
                 "user": user_data,

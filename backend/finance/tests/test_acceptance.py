@@ -122,13 +122,13 @@ def test_end_to_end_monthly_finance_flow() -> None:
     assert dashboard["period"]["personal_spent"] == Decimal("10000.00")
     assert dashboard["period"]["safe_to_spend"] == Decimal("220000.00")
     assert dashboard["period"]["net_cash_flow"] == Decimal("430000.00")
-    assert dashboard["bank"]["calculated_balance"] == Decimal("530000.00")
+    assert dashboard["bank"]["calculated_balance"] == Decimal("680000.00")
 
     reconciled = client.post(
         "/api/v1/bank/reconciliations/",
         {
             "date": entry_date,
-            "actual_balance": "535000.00",
+            "actual_balance": "685000.00",
             "notes": "Bank fee reversal",
             "post_adjustment": True,
         },

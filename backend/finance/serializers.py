@@ -46,7 +46,7 @@ class UserSerializer(serializers.Serializer):
 class UserPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPreference
-        fields = ["preferred_language", "updated_at"]
+        fields = ["preferred_language", "tour_completed", "updated_at"]
         read_only_fields = ["updated_at"]
 
 
@@ -312,6 +312,12 @@ class PersonalExpenseSerializer(serializers.ModelSerializer):
 
 class SavingsGoalSerializer(serializers.ModelSerializer):
     balance = serializers.SerializerMethodField()
+    opening_balance = MoneyField(min_value=Decimal("0.00"))
+    target_amount = MoneyField(
+        min_value=Decimal("0.01"),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = SavingsGoal
@@ -326,6 +332,35 @@ class SavingsGoalSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
+
+    def validate_name(self, value: str) -> str:
+        value = value.strip()
+        request = self.context.get("request")
+        household = (
+            self.instance.household if self.instance else request.user.finance_membership.household
+        )
+        matching = SavingsGoal.objects.filter(household=household, name__iexact=value)
+        if self.instance:
+            matching = matching.exclude(pk=self.instance.pk)
+        if matching.exists():
+            raise serializers.ValidationError("A savings goal with this name already exists.")
+        return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if (
+            self.instance
+            and "opening_balance" in attrs
+            and attrs["opening_balance"] != self.instance.opening_balance
+        ):
+            raise serializers.ValidationError(
+                {
+                    "opening_balance": (
+                        "Opening balance is historical. Record a contribution or withdrawal "
+                        "to change reserved savings."
+                    )
+                }
+            )
+        return attrs
 
     def get_balance(self, obj: SavingsGoal) -> Decimal:
         return savings_goal_balance(obj)
@@ -372,6 +407,10 @@ class SavingsMovementSerializer(serializers.ModelSerializer):
             **attrs,
         )
         movement.clean()
+        if movement.destination_goal and not movement.destination_goal.active:
+            raise serializers.ValidationError(
+                {"destination_goal": "New savings can only be moved into an active goal."}
+            )
         if movement.kind in {
             SavingsMovement.Kind.WITHDRAWAL,
             SavingsMovement.Kind.TRANSFER,

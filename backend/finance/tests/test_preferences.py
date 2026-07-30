@@ -20,6 +20,7 @@ def test_session_requires_language_selection_until_preference_is_saved() -> None
     assert initial.status_code == 200
     assert initial.data["needs_language_selection"] is True
     assert initial.data["user"]["preferred_language"] is None
+    assert initial.data["user"]["tour_completed"] is False
 
     saved = client.patch(
         "/api/v1/preferences/",
@@ -33,6 +34,16 @@ def test_session_requires_language_selection_until_preference_is_saved() -> None
     refreshed = client.get("/api/v1/session/")
     assert refreshed.data["needs_language_selection"] is False
     assert refreshed.data["user"]["preferred_language"] == UserPreference.Language.URDU
+    assert refreshed.data["user"]["tour_completed"] is False
+
+    completed = client.patch(
+        "/api/v1/preferences/",
+        {"tour_completed": True},
+        format="json",
+    )
+    assert completed.status_code == 200
+    assert completed.data["tour_completed"] is True
+    assert client.get("/api/v1/session/").data["user"]["tour_completed"] is True
 
 
 def test_language_preference_rejects_unsupported_values() -> None:

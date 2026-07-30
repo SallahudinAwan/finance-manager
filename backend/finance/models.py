@@ -86,6 +86,7 @@ class UserPreference(TimestampedModel):
         choices=Language.choices,
         default=Language.ENGLISH,
     )
+    tour_completed = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return f"{self.user} · {self.get_preferred_language_display()}"

@@ -110,7 +110,7 @@ def test_dashboard_calculations_match_budget_and_bank_rules() -> None:
     assert data["period"]["house_balance"] == Decimal("24000.00")
     assert data["period"]["safe_to_spend"] == Decimal("276000.00")
     assert data["period"]["net_cash_flow"] == Decimal("450000.00")
-    assert data["bank"]["calculated_balance"] == Decimal("779980.00")
+    assert data["bank"]["calculated_balance"] == Decimal("929980.00")
     assert data["savings"]["total"] == Decimal("150000.00")
 
 
@@ -236,3 +236,34 @@ def test_savings_transfer_moves_envelopes_without_changing_bank() -> None:
     assert savings_goal_balance(source) == Decimal("30000.00")
     assert savings_goal_balance(destination) == Decimal("20000.00")
     assert bank_calculated_balance(household.bank_account) == before
+
+
+def test_savings_contributions_and_withdrawals_change_calculated_bank() -> None:
+    owner, household = create_household()
+    goal = SavingsGoal.objects.create(household=household, name="Family gifts")
+    period = generate_month(household, 2026, 8)
+    opening = bank_calculated_balance(household.bank_account)
+
+    SavingsMovement.objects.create(
+        household=household,
+        period=period,
+        created_by=owner,
+        kind=SavingsMovement.Kind.CONTRIBUTION,
+        destination_goal=goal,
+        date=date(2026, 8, 5),
+        amount=Decimal("25000.00"),
+    )
+    SavingsMovement.objects.create(
+        household=household,
+        period=period,
+        created_by=owner,
+        kind=SavingsMovement.Kind.WITHDRAWAL,
+        source_goal=goal,
+        date=date(2026, 8, 10),
+        amount=Decimal("5000.00"),
+    )
+
+    assert bank_calculated_balance(
+        household.bank_account, through_date=date(2026, 8, 7)
+    ) == opening + Decimal("25000.00")
+    assert bank_calculated_balance(household.bank_account) == opening + Decimal("20000.00")
