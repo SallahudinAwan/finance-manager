@@ -15,7 +15,15 @@ import {
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { api, deleteJson, formatPkr, money, patchJson, postJson } from "../api/client";
+import {
+  api,
+  appLocale,
+  deleteJson,
+  formatPkr,
+  money,
+  patchJson,
+  postJson,
+} from "../api/client";
 import { Modal } from "../components/Modal";
 import { SavingsMovementForm } from "../components/SavingsMovementForm";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
@@ -150,7 +158,7 @@ export function MonthPage() {
     <>
       <PageHeader
         eyebrow="Monthly workspace"
-        title={new Date(data.year, data.month - 1).toLocaleDateString("en-PK", {
+        title={new Date(data.year, data.month - 1).toLocaleDateString(appLocale(), {
           month: "long",
           year: "numeric",
         })}
@@ -165,7 +173,7 @@ export function MonthPage() {
               >
                 {(months.data?.results ?? [data]).map((period) => (
                   <option key={period.id} value={period.label}>
-                    {new Date(period.year, period.month - 1).toLocaleDateString("en-PK", {
+                    {new Date(period.year, period.month - 1).toLocaleDateString(appLocale(), {
                       month: "long",
                       year: "numeric",
                     })}
@@ -196,7 +204,7 @@ export function MonthPage() {
                 </Modal>
                 <Modal
                   title={`Delete ${new Date(data.year, data.month - 1).toLocaleDateString(
-                    "en-PK",
+                    appLocale(),
                     { month: "long", year: "numeric" },
                   )}?`}
                   description="This removes the complete financial flow for this month and cannot be undone."
@@ -363,7 +371,7 @@ export function MonthPage() {
                     <td>
                       <CalendarDays size={14} />
                       {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(
-                        "en-PK",
+                        appLocale(),
                         { day: "numeric", month: "short" },
                       )}
                     </td>
@@ -440,7 +448,7 @@ export function MonthPage() {
                           </span>
                         </td>
                         <td>
-                          {new Date(`${item.date}T00:00:00`).toLocaleDateString("en-PK", {
+                          {new Date(`${item.date}T00:00:00`).toLocaleDateString(appLocale(), {
                             day: "numeric",
                             month: "short",
                           })}
@@ -500,7 +508,9 @@ export function MonthPage() {
                   </span>
                   <div>
                     <strong>{item.description}</strong>
-                    <small>{new Date(`${item.date}T00:00:00`).toLocaleDateString()}</small>
+                    <small>
+                      {new Date(`${item.date}T00:00:00`).toLocaleDateString(appLocale())}
+                    </small>
                   </div>
                   <b>{formatPkr(item.amount)}</b>
                   <div className="personal-actions">
@@ -535,7 +545,7 @@ export function MonthPage() {
 
       <Modal
         title={`Move savings for ${new Date(data.year, data.month - 1).toLocaleDateString(
-          "en-PK",
+          appLocale(),
           { month: "long", year: "numeric" },
         )}`}
         description="This records a virtual allocation for the selected month without creating another bank transaction."
@@ -796,7 +806,7 @@ function TransactionDeleteConfirmation({
         <span>{target.transaction.description}</span>
         <strong>{formatPkr(target.transaction.amount)}</strong>
         <small>
-          {new Date(`${target.transaction.date}T00:00:00`).toLocaleDateString("en-PK", {
+          {new Date(`${target.transaction.date}T00:00:00`).toLocaleDateString(appLocale(), {
             day: "numeric",
             month: "long",
             year: "numeric",

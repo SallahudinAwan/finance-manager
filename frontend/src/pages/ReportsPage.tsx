@@ -18,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, formatPkr, money } from "../api/client";
+import { api, appLocale, formatPkr, money } from "../api/client";
 import { EmptyState, ErrorPanel, PageHeader, Skeleton } from "../components/ui";
 import type { Trend } from "../types";
 
@@ -32,7 +32,7 @@ export function ReportsPage() {
 
   const rows = query.data.results.map((row) => ({
     ...row,
-    name: new Date(row.year, row.month - 1).toLocaleDateString("en-PK", {
+    name: new Date(row.year, row.month - 1).toLocaleDateString(appLocale(), {
       month: "short",
       year: "2-digit",
     }),

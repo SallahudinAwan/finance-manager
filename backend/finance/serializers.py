@@ -24,6 +24,7 @@ from .models import (
     RecurringIncome,
     SavingsGoal,
     SavingsMovement,
+    UserPreference,
 )
 from .services import generate_month, savings_goal_balance
 
@@ -40,6 +41,13 @@ class UserSerializer(serializers.Serializer):
 
     def get_name(self, obj: Any) -> str:
         return obj.get_full_name() or obj.email
+
+
+class UserPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserPreference
+        fields = ["preferred_language", "updated_at"]
+        read_only_fields = ["updated_at"]
 
 
 class MembershipSerializer(serializers.ModelSerializer):

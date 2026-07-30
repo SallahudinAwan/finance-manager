@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ApiError, api } from "./api/client";
 import { AppShell } from "./components/AppShell";
 import { Skeleton } from "./components/ui";
+import { I18nProvider } from "./i18n";
 import type { Session } from "./types";
 
 const AccountPage = lazy(() =>
@@ -20,6 +21,11 @@ const LandingPage = lazy(() =>
 );
 const LegalPage = lazy(() =>
   import("./pages/LegalPage").then((module) => ({ default: module.LegalPage })),
+);
+const LanguageSetupPage = lazy(() =>
+  import("./pages/LanguageSetupPage").then((module) => ({
+    default: module.LanguageSetupPage,
+  })),
 );
 const MonthPage = lazy(() =>
   import("./pages/MonthPage").then((module) => ({ default: module.MonthPage })),
@@ -71,39 +77,52 @@ export default function App() {
     }
     return <Suspense fallback={<PageFallback />}>{publicPage}</Suspense>;
   }
-  if (location.pathname.startsWith("/invite/")) {
+  if (session.data.needs_language_selection || !session.data.user.preferred_language) {
     return (
       <Suspense fallback={<PageFallback />}>
-        <Routes>
-          <Route path="/invite/:token" element={<InvitePage />} />
-        </Routes>
+        <LanguageSetupPage session={session.data} />
       </Suspense>
+    );
+  }
+  if (location.pathname.startsWith("/invite/")) {
+    return (
+      <I18nProvider language={session.data.user.preferred_language}>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route path="/invite/:token" element={<InvitePage />} />
+          </Routes>
+        </Suspense>
+      </I18nProvider>
     );
   }
   if (session.data.needs_onboarding) {
     return (
-      <Suspense fallback={<PageFallback />}>
-        <OnboardingPage session={session.data} />
-      </Suspense>
+      <I18nProvider language={session.data.user.preferred_language}>
+        <Suspense fallback={<PageFallback />}>
+          <OnboardingPage session={session.data} />
+        </Suspense>
+      </I18nProvider>
     );
   }
 
   return (
-    <Suspense fallback={<PageFallback />}>
-      <Routes>
-        <Route path="/app" element={<AppShell session={session.data} />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="month" element={<MonthPage />} />
-          <Route path="month/:label" element={<MonthPage />} />
-          <Route path="savings" element={<SavingsPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="account" element={<AccountPage />} />
-        </Route>
-        <Route path="/" element={<Navigate to="/app" replace />} />
-        <Route path="*" element={<Navigate to="/app" replace />} />
-      </Routes>
-    </Suspense>
+    <I18nProvider language={session.data.user.preferred_language}>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route path="/app" element={<AppShell session={session.data} />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="month" element={<MonthPage />} />
+            <Route path="month/:label" element={<MonthPage />} />
+            <Route path="savings" element={<SavingsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="account" element={<AccountPage />} />
+          </Route>
+          <Route path="/" element={<Navigate to="/app" replace />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
+      </Suspense>
+    </I18nProvider>
   );
 }
