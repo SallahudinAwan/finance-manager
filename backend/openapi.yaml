@@ -1,0 +1,3018 @@
+openapi: 3.0.3
+info:
+  title: Finance Manager API
+  version: 1.0.0
+  description: Household finance planning and reconciliation API.
+paths:
+  /api/v1/account/:
+    delete:
+      operationId: v1_account_destroy
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/bank/:
+    get:
+      operationId: v1_bank_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankAccount'
+          description: ''
+    patch:
+      operationId: v1_bank_partial_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBankAccount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBankAccount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBankAccount'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankAccount'
+          description: ''
+  /api/v1/bank/reconciliations/:
+    get:
+      operationId: v1_bank_reconciliations_list
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BankReconciliation'
+          description: ''
+    post:
+      operationId: v1_bank_reconciliations_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconciliationInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReconciliationInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReconciliationInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankReconciliation'
+          description: ''
+  /api/v1/dashboard/:
+    get:
+      operationId: v1_dashboard_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/expense-templates/:
+    get:
+      operationId: v1_expense_templates_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRecurringExpenseList'
+          description: ''
+    post:
+      operationId: v1_expense_templates_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecurringExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecurringExpense'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringExpense'
+          description: ''
+  /api/v1/expense-templates/{id}/:
+    get:
+      operationId: v1_expense_templates_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring expense.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringExpense'
+          description: ''
+    put:
+      operationId: v1_expense_templates_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring expense.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecurringExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecurringExpense'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringExpense'
+          description: ''
+    patch:
+      operationId: v1_expense_templates_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring expense.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringExpense'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringExpense'
+          description: ''
+    delete:
+      operationId: v1_expense_templates_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring expense.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/exports/backup.json:
+    get:
+      operationId: v1_exports_backup.json_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/exports/ledger.csv:
+    get:
+      operationId: v1_exports_ledger.csv_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: v1_health_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/household/:
+    get:
+      operationId: v1_household_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+          description: ''
+    patch:
+      operationId: v1_household_partial_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHousehold'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHousehold'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHousehold'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+          description: ''
+  /api/v1/household/leave/:
+    post:
+      operationId: v1_household_leave_create
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/household/members/:
+    get:
+      operationId: v1_household_members_list
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Membership'
+          description: ''
+  /api/v1/household/transfer-ownership/:
+    post:
+      operationId: v1_household_transfer_ownership_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnershipTransfer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OwnershipTransfer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OwnershipTransfer'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/income-plans/:
+    get:
+      operationId: v1_income_plans_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMonthlyIncomePlanList'
+          description: ''
+  /api/v1/income-plans/{id}/:
+    get:
+      operationId: v1_income_plans_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this monthly income plan.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyIncomePlan'
+          description: ''
+  /api/v1/income-plans/{id}/receive/:
+    post:
+      operationId: v1_income_plans_receive_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this monthly income plan.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonthlyIncomePlan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MonthlyIncomePlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MonthlyIncomePlan'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyIncomePlan'
+          description: ''
+  /api/v1/income-templates/:
+    get:
+      operationId: v1_income_templates_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRecurringIncomeList'
+          description: ''
+    post:
+      operationId: v1_income_templates_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringIncome'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecurringIncome'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecurringIncome'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringIncome'
+          description: ''
+  /api/v1/income-templates/{id}/:
+    get:
+      operationId: v1_income_templates_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring income.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringIncome'
+          description: ''
+    put:
+      operationId: v1_income_templates_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring income.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringIncome'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecurringIncome'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecurringIncome'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringIncome'
+          description: ''
+    patch:
+      operationId: v1_income_templates_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring income.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringIncome'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringIncome'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringIncome'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringIncome'
+          description: ''
+    delete:
+      operationId: v1_income_templates_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this recurring income.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/invitations/:
+    get:
+      operationId: v1_invitations_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvitationList'
+          description: ''
+    post:
+      operationId: v1_invitations_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+          description: ''
+  /api/v1/invitations/{id}/:
+    get:
+      operationId: v1_invitations_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this household invitation.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+          description: ''
+    delete:
+      operationId: v1_invitations_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this household invitation.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/invitations/{token}/accept/:
+    post:
+      operationId: v1_invitations_accept_create
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/ledger/:
+    get:
+      operationId: v1_ledger_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLedgerEntryList'
+          description: ''
+    post:
+      operationId: v1_ledger_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LedgerEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LedgerEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LedgerEntry'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerEntry'
+          description: ''
+  /api/v1/ledger/{id}/:
+    get:
+      operationId: v1_ledger_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerEntry'
+          description: ''
+    put:
+      operationId: v1_ledger_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LedgerEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LedgerEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LedgerEntry'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerEntry'
+          description: ''
+    patch:
+      operationId: v1_ledger_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLedgerEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLedgerEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLedgerEntry'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerEntry'
+          description: ''
+    delete:
+      operationId: v1_ledger_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/months/:
+    get:
+      operationId: v1_months_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMonthlyPeriodList'
+          description: ''
+  /api/v1/months/{id}/:
+    get:
+      operationId: v1_months_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this monthly period.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyPeriod'
+          description: ''
+  /api/v1/months/{id}/summary/:
+    get:
+      operationId: v1_months_summary_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this monthly period.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyPeriod'
+          description: ''
+  /api/v1/months/by-label/:
+    get:
+      operationId: v1_months_by_label_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyPeriod'
+          description: ''
+  /api/v1/months/current/:
+    get:
+      operationId: v1_months_current_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyPeriod'
+          description: ''
+  /api/v1/months/generate/:
+    post:
+      operationId: v1_months_generate_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonthlyPeriod'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MonthlyPeriod'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MonthlyPeriod'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyPeriod'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: v1_notifications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/:
+    get:
+      operationId: v1_notifications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this notification.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    post:
+      operationId: v1_notifications_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this notification.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/read_all/:
+    post:
+      operationId: v1_notifications_read_all_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/onboarding/:
+    post:
+      operationId: v1_onboarding_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+          description: ''
+  /api/v1/personal-expenses/:
+    get:
+      operationId: v1_personal_expenses_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPersonalExpenseList'
+          description: ''
+    post:
+      operationId: v1_personal_expenses_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonalExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PersonalExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PersonalExpense'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalExpense'
+          description: ''
+  /api/v1/personal-expenses/{id}/:
+    get:
+      operationId: v1_personal_expenses_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalExpense'
+          description: ''
+    put:
+      operationId: v1_personal_expenses_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonalExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PersonalExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PersonalExpense'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalExpense'
+          description: ''
+    patch:
+      operationId: v1_personal_expenses_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPersonalExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPersonalExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPersonalExpense'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalExpense'
+          description: ''
+    delete:
+      operationId: v1_personal_expenses_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ledger entry.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/planned-expenses/:
+    get:
+      operationId: v1_planned_expenses_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlannedExpenseList'
+          description: ''
+  /api/v1/planned-expenses/{id}/:
+    get:
+      operationId: v1_planned_expenses_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this planned expense.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlannedExpense'
+          description: ''
+    put:
+      operationId: v1_planned_expenses_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this planned expense.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlannedExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlannedExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlannedExpense'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlannedExpense'
+          description: ''
+    patch:
+      operationId: v1_planned_expenses_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this planned expense.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlannedExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlannedExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlannedExpense'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlannedExpense'
+          description: ''
+  /api/v1/planned-expenses/{id}/payments/:
+    post:
+      operationId: v1_planned_expenses_payments_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this planned expense.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlannedExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlannedExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlannedExpense'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlannedExpense'
+          description: ''
+  /api/v1/reports/trends/:
+    get:
+      operationId: v1_reports_trends_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/savings-goals/:
+    get:
+      operationId: v1_savings_goals_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSavingsGoalList'
+          description: ''
+    post:
+      operationId: v1_savings_goals_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavingsGoal'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SavingsGoal'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SavingsGoal'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsGoal'
+          description: ''
+  /api/v1/savings-goals/{id}/:
+    get:
+      operationId: v1_savings_goals_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings goal.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsGoal'
+          description: ''
+    put:
+      operationId: v1_savings_goals_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings goal.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavingsGoal'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SavingsGoal'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SavingsGoal'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsGoal'
+          description: ''
+    patch:
+      operationId: v1_savings_goals_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings goal.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSavingsGoal'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSavingsGoal'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSavingsGoal'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsGoal'
+          description: ''
+    delete:
+      operationId: v1_savings_goals_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings goal.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/savings-movements/:
+    get:
+      operationId: v1_savings_movements_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSavingsMovementList'
+          description: ''
+    post:
+      operationId: v1_savings_movements_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavingsMovement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SavingsMovement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SavingsMovement'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsMovement'
+          description: ''
+  /api/v1/savings-movements/{id}/:
+    get:
+      operationId: v1_savings_movements_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings movement.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsMovement'
+          description: ''
+    put:
+      operationId: v1_savings_movements_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings movement.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavingsMovement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SavingsMovement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SavingsMovement'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsMovement'
+          description: ''
+    patch:
+      operationId: v1_savings_movements_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings movement.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSavingsMovement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSavingsMovement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSavingsMovement'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsMovement'
+          description: ''
+    delete:
+      operationId: v1_savings_movements_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this savings movement.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/session/:
+    get:
+      operationId: v1_session_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+components:
+  schemas:
+    BankAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        opening_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        opening_date:
+          type: string
+          format: date
+        calculated_balance:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+      required:
+      - calculated_balance
+      - id
+      - opening_balance
+      - opening_date
+    BankReconciliation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        date:
+          type: string
+          format: date
+        actual_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        calculated_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        variance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - actual_balance
+      - calculated_balance
+      - created_at
+      - date
+      - id
+      - variance
+    DirectionEnum:
+      enum:
+      - credit
+      - debit
+      type: string
+      description: |-
+        * `credit` - Credit
+        * `debit` - Debit
+    EntryTypeEnum:
+      enum:
+      - income
+      - household_expense
+      - personal_expense
+      - adjustment
+      type: string
+      description: |-
+        * `income` - Income
+        * `household_expense` - Household expense
+        * `personal_expense` - Personal expense
+        * `adjustment` - Bank adjustment
+    ExpenseSetup:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        expected_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.01
+          exclusiveMaximum: true
+        due_day:
+          type: integer
+          maximum: 31
+          minimum: 1
+        reminder_lead_days:
+          type: integer
+          maximum: 31
+          minimum: 0
+          default: 3
+      required:
+      - due_day
+      - expected_amount
+      - name
+    Household:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        owner:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        monthly_savings_target:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        savings_reminder_day:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        onboarding_complete:
+          type: boolean
+          readOnly: true
+      required:
+      - currency
+      - id
+      - name
+      - onboarding_complete
+      - owner
+      - timezone
+    IncomeSetup:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.01
+          exclusiveMaximum: true
+      required:
+      - amount
+      - name
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        invite_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - expires_at
+      - id
+      - invite_url
+      - status
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        period:
+          type: integer
+        planned_income:
+          type: integer
+          nullable: true
+        planned_expense:
+          type: integer
+          nullable: true
+        entry_type:
+          $ref: '#/components/schemas/EntryTypeEnum'
+        direction:
+          $ref: '#/components/schemas/DirectionEnum'
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        description:
+          type: string
+          maxLength: 160
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - date
+      - description
+      - direction
+      - entry_type
+      - id
+      - period
+      - updated_at
+    Membership:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - is_active
+      - role
+      - user
+    MonthlyIncomePlan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        planned_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        received_amount:
+          type: number
+          format: double
+          readOnly: true
+      required:
+      - id
+      - name
+      - planned_amount
+      - received_amount
+    MonthlyPeriod:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        year:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        month:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        label:
+          type: string
+          readOnly: true
+        savings_target:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        income_plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyIncomePlan'
+          readOnly: true
+        planned_expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlannedExpense'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - income_plans
+      - label
+      - month
+      - planned_expenses
+      - updated_at
+      - year
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/NotificationKindEnum'
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        message:
+          type: string
+          readOnly: true
+        action_url:
+          type: string
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action_url
+      - created_at
+      - id
+      - kind
+      - message
+      - title
+    NotificationKindEnum:
+      enum:
+      - bill_due
+      - bill_overdue
+      - savings
+      - invitation
+      - system
+      type: string
+      description: |-
+        * `bill_due` - Bill due
+        * `bill_overdue` - Bill overdue
+        * `savings` - Savings
+        * `invitation` - Invitation
+        * `system` - System
+    Onboarding:
+      type: object
+      properties:
+        household_name:
+          type: string
+          maxLength: 120
+        bank_name:
+          type: string
+          default: Main Bank
+          maxLength: 120
+        opening_balance:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        opening_date:
+          type: string
+          format: date
+        monthly_savings_target:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.00
+          exclusiveMaximum: true
+        incomes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IncomeSetup'
+        expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseSetup'
+        savings_goals:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavingsGoalSetup'
+      required:
+      - expenses
+      - household_name
+      - incomes
+      - monthly_savings_target
+      - opening_balance
+      - opening_date
+      - savings_goals
+    OwnershipTransfer:
+      type: object
+      properties:
+        membership_id:
+          type: integer
+          minimum: 1
+      required:
+      - membership_id
+    PaginatedInvitationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invitation'
+    PaginatedLedgerEntryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LedgerEntry'
+    PaginatedMonthlyIncomePlanList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyIncomePlan'
+    PaginatedMonthlyPeriodList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyPeriod'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedPersonalExpenseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonalExpense'
+    PaginatedPlannedExpenseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlannedExpense'
+    PaginatedRecurringExpenseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecurringExpense'
+    PaginatedRecurringIncomeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecurringIncome'
+    PaginatedSavingsGoalList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavingsGoal'
+    PaginatedSavingsMovementList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavingsMovement'
+    PatchedBankAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        opening_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        opening_date:
+          type: string
+          format: date
+        calculated_balance:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+    PatchedHousehold:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        owner:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        monthly_savings_target:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        savings_reminder_day:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        onboarding_complete:
+          type: boolean
+          readOnly: true
+    PatchedLedgerEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        period:
+          type: integer
+        planned_income:
+          type: integer
+          nullable: true
+        planned_expense:
+          type: integer
+          nullable: true
+        entry_type:
+          $ref: '#/components/schemas/EntryTypeEnum'
+        direction:
+          $ref: '#/components/schemas/DirectionEnum'
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        description:
+          type: string
+          maxLength: 160
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPersonalExpense:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        period:
+          type: integer
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        description:
+          type: string
+          maxLength: 160
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPlannedExpense:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        expected_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        due_date:
+          type: string
+          format: date
+        reminder_lead_days:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        paid_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        remaining_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedRecurringExpense:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        expected_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        due_day:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        reminder_lead_days:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedRecurringIncome:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedSavingsGoal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        opening_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        target_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        active:
+          type: boolean
+        balance:
+          type: number
+          format: double
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedSavingsMovement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        period:
+          type: integer
+          nullable: true
+        kind:
+          $ref: '#/components/schemas/SavingsMovementKindEnum'
+        source_goal:
+          type: integer
+          nullable: true
+        destination_goal:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PersonalExpense:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        period:
+          type: integer
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        description:
+          type: string
+          maxLength: 160
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - date
+      - description
+      - id
+      - period
+    PlannedExpense:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        expected_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        due_date:
+          type: string
+          format: date
+        reminder_lead_days:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        paid_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        remaining_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - due_date
+      - expected_amount
+      - id
+      - name
+      - paid_amount
+      - remaining_amount
+      - status
+      - updated_at
+    ReconciliationInput:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        actual_balance:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: -1000000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        notes:
+          type: string
+        post_adjustment:
+          type: boolean
+          default: false
+      required:
+      - actual_balance
+    RecurringExpense:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        expected_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        due_day:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        reminder_lead_days:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - expected_amount
+      - id
+      - name
+      - updated_at
+    RecurringIncome:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - name
+      - updated_at
+    RoleEnum:
+      enum:
+      - owner
+      - member
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `member` - Member
+    SavingsGoal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        opening_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        target_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        active:
+          type: boolean
+        balance:
+          type: number
+          format: double
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - balance
+      - created_at
+      - id
+      - name
+      - updated_at
+    SavingsGoalSetup:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        opening_balance:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.00
+          exclusiveMaximum: true
+          default: 0.00
+        target_amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.01
+          exclusiveMaximum: true
+          nullable: true
+      required:
+      - name
+    SavingsMovement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        period:
+          type: integer
+          nullable: true
+        kind:
+          $ref: '#/components/schemas/SavingsMovementKindEnum'
+        source_goal:
+          type: integer
+          nullable: true
+        destination_goal:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - date
+      - id
+      - kind
+    SavingsMovementKindEnum:
+      enum:
+      - contribution
+      - withdrawal
+      - transfer
+      type: string
+      description: |-
+        * `contribution` - Contribution
+        * `withdrawal` - Withdrawal
+        * `transfer` - Transfer
+    StatusEnum:
+      enum:
+      - pending
+      - accepted
+      - revoked
+      - expired
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `revoked` - Revoked
+        * `expired` - Expired
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+      required:
+      - email
+      - id
+      - name
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

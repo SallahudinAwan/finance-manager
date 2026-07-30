@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.env
+db.sqlite3
+staticfiles
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/playwright-report
+frontend/test-results
+__pycache__
+*.pyc

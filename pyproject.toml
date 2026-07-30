@@ -1,0 +1,52 @@
+[project]
+name = "finance-manager"
+version = "0.1.0"
+description = "A privacy-aware household finance manager."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "dj-database-url>=2.3,<3",
+  "django>=5.2.16,<5.3",
+  "django-allauth[headless]>=65.18,<66",
+  "django-anymail[resend]>=13,<14",
+  "djangorestframework>=3.16,<4",
+  "drf-spectacular>=0.28,<1",
+  "gunicorn>=23,<24",
+  "psycopg[binary]>=3.2,<4",
+  "whitenoise>=6.9,<7",
+]
+
+[dependency-groups]
+dev = [
+  "django-stubs>=5.2,<6",
+  "mypy>=1.17,<2",
+  "pytest>=8.4,<9",
+  "pytest-cov>=6.2,<7",
+  "pytest-django>=4.11,<5",
+  "ruff>=0.12,<1",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["backend"]
+addopts = "-q --strict-markers"
+pythonpath = ["backend"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+exclude = ["backend/finance/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+ignore = ["DJ001", "DJ008", "DJ012", "E501"]
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+strict = true
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings"

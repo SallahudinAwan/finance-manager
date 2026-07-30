@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: finance-manager
+    runtime: docker
+    plan: free
+    healthCheckPath: /health/
+    autoDeployTrigger: checksPass
+    preDeployCommand: .venv/bin/python manage.py migrate --noinput
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: Finance Manager <onboarding@resend.dev>
+      - key: EMAIL_ENABLED
+        value: "false"
+
+  - type: cron
+    name: finance-manager-daily
+    runtime: docker
+    plan: starter
+    schedule: "0 4 * * *"
+    dockerCommand: >-
+      .venv/bin/python manage.py generate_months &&
+      .venv/bin/python manage.py send_reminders
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: Finance Manager <onboarding@resend.dev>
+      - key: EMAIL_ENABLED
+        value: "false"
