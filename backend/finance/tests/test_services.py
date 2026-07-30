@@ -15,6 +15,7 @@ from finance.services import (
     dashboard_data,
     generate_month,
     reconcile_bank,
+    refresh_expense_carryovers,
     savings_goal_balance,
 )
 from finance.tests.factories import create_household
@@ -150,6 +151,46 @@ def test_partial_and_overpayment_status() -> None:
         description="Internet",
     )
     assert planned.payment_status == "overpaid"
+
+
+def test_historical_overpayment_becomes_next_month_credit_without_double_charging_bank() -> None:
+    owner, household = create_household()
+    RecurringExpense.objects.create(
+        household=household,
+        name="Electricity",
+        expected_amount=Decimal("5000.00"),
+        due_day=10,
+    )
+    july = generate_month(household, 2026, 7)
+    june = generate_month(household, 2026, 6)
+    june_bill = june.planned_expenses.get()
+    july_bill = july.planned_expenses.get()
+    opening_balance = bank_calculated_balance(household.bank_account)
+
+    LedgerEntry.objects.create(
+        household=household,
+        period=june,
+        planned_expense=june_bill,
+        created_by=owner,
+        entry_type=LedgerEntry.EntryType.HOUSEHOLD_EXPENSE,
+        direction=LedgerEntry.Direction.DEBIT,
+        date=date(2026, 6, 10),
+        amount=Decimal("7000.00"),
+        description="Electricity",
+    )
+    refresh_expense_carryovers(household, june)
+    refresh_expense_carryovers(household, june)
+
+    july_bill.refresh_from_db()
+    assert june_bill.overpaid_amount == Decimal("2000.00")
+    assert july_bill.actual_paid_amount == Decimal("0.00")
+    assert july_bill.carryover_credit == Decimal("2000.00")
+    assert july_bill.paid_amount == Decimal("2000.00")
+    assert july_bill.remaining_amount == Decimal("3000.00")
+    assert july_bill.payment_status == "partial"
+    assert july.ledger_entries.count() == 0
+    assert bank_calculated_balance(household.bank_account) == opening_balance - Decimal("7000.00")
+    assert dashboard_data(household, july)["period"]["house_balance"] == Decimal("3000.00")
 
 
 def test_reconciliation_can_post_explicit_adjustment() -> None:

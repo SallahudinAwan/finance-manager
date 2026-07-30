@@ -141,6 +141,95 @@ def test_owner_can_delete_a_shared_payment_and_restore_the_bill_balance() -> Non
     assert planned.payment_status == "unpaid"
 
 
+def test_historical_payment_edits_and_deletion_recalculate_next_month_credit() -> None:
+    owner, household = create_household()
+    RecurringExpense.objects.create(
+        household=household,
+        name="Electricity",
+        expected_amount=Decimal("5000.00"),
+        due_day=10,
+    )
+    july = generate_month(household, 2026, 7)
+    june = generate_month(household, 2026, 6)
+    june_bill = june.planned_expenses.get()
+    july_bill = july.planned_expenses.get()
+    client = APIClient()
+    client.force_authenticate(owner)
+
+    created = client.post(
+        f"/api/v1/planned-expenses/{june_bill.id}/payments/",
+        {"amount": "7000.00", "date": "2026-06-10"},
+        format="json",
+    )
+    july_bill.refresh_from_db()
+    assert created.status_code == 201
+    assert july_bill.carryover_credit == Decimal("2000.00")
+
+    updated = client.patch(
+        f"/api/v1/ledger/{created.data['id']}/",
+        {"amount": "8000.00"},
+        format="json",
+    )
+    july_bill.refresh_from_db()
+    assert updated.status_code == 200
+    assert july_bill.carryover_credit == Decimal("3000.00")
+
+    deleted = client.delete(f"/api/v1/ledger/{created.data['id']}/")
+    july_bill.refresh_from_db()
+    assert deleted.status_code == 204
+    assert july_bill.carryover_credit == Decimal("0.00")
+    assert july_bill.remaining_amount == Decimal("5000.00")
+
+
+def test_owner_can_manually_create_and_populate_a_previous_month() -> None:
+    owner, household = create_household()
+    RecurringExpense.objects.create(
+        household=household,
+        name="Rent",
+        expected_amount=Decimal("38000.00"),
+        due_day=1,
+    )
+    goal = SavingsGoal.objects.create(household=household, name="Emergency")
+    client = APIClient()
+    client.force_authenticate(owner)
+
+    generated = client.post(
+        "/api/v1/months/generate/",
+        {"year": 2026, "month": 6},
+        format="json",
+    )
+    period_id = generated.data["id"]
+    personal = client.post(
+        "/api/v1/personal-expenses/",
+        {
+            "period": period_id,
+            "date": "2026-06-12",
+            "amount": "2500.00",
+            "description": "Historical personal expense",
+        },
+        format="json",
+    )
+    savings = client.post(
+        "/api/v1/savings-movements/",
+        {
+            "period": period_id,
+            "kind": "contribution",
+            "source_goal": None,
+            "destination_goal": goal.id,
+            "date": "2026-06-25",
+            "amount": "10000.00",
+            "notes": "June allocation",
+        },
+        format="json",
+    )
+
+    assert generated.status_code == 201
+    assert generated.data["label"] == "2026-06"
+    assert generated.data["planned_expenses"][0]["remaining_amount"] == Decimal("38000.00")
+    assert personal.status_code == 201
+    assert savings.status_code == 201
+
+
 def test_personal_transaction_edits_remain_private_to_the_creator() -> None:
     owner, household = create_household()
     member = create_member(household)

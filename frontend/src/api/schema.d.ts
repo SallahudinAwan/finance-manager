@@ -1116,9 +1116,15 @@ export interface components {
             /** Format: int64 */
             reminder_lead_days?: number;
             /** Format: double */
+            readonly actual_paid_amount?: number;
+            /** Format: double */
+            readonly carryover_credit?: number;
+            /** Format: double */
             readonly paid_amount?: number;
             /** Format: double */
             readonly remaining_amount?: number;
+            /** Format: double */
+            readonly overpaid_amount?: number;
             readonly status?: string;
             /** Format: date-time */
             readonly created_at?: string;
@@ -1202,9 +1208,15 @@ export interface components {
             /** Format: int64 */
             reminder_lead_days?: number;
             /** Format: double */
+            readonly actual_paid_amount: number;
+            /** Format: double */
+            readonly carryover_credit: number;
+            /** Format: double */
             readonly paid_amount: number;
             /** Format: double */
             readonly remaining_amount: number;
+            /** Format: double */
+            readonly overpaid_amount: number;
             readonly status: string;
             /** Format: date-time */
             readonly created_at: string;

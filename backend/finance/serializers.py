@@ -122,8 +122,11 @@ class MonthlyIncomePlanSerializer(serializers.ModelSerializer):
 
 
 class PlannedExpenseSerializer(serializers.ModelSerializer):
+    actual_paid_amount = MoneyField(read_only=True)
+    carryover_credit = MoneyField(read_only=True)
     paid_amount = MoneyField(read_only=True)
     remaining_amount = MoneyField(read_only=True)
+    overpaid_amount = MoneyField(read_only=True)
     status = serializers.CharField(source="payment_status", read_only=True)
 
     class Meta:
@@ -134,8 +137,11 @@ class PlannedExpenseSerializer(serializers.ModelSerializer):
             "expected_amount",
             "due_date",
             "reminder_lead_days",
+            "actual_paid_amount",
+            "carryover_credit",
             "paid_amount",
             "remaining_amount",
+            "overpaid_amount",
             "status",
             "created_at",
             "updated_at",

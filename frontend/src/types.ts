@@ -47,8 +47,11 @@ export interface PlannedExpense {
   expected_amount: Money;
   due_date: string;
   reminder_lead_days: number;
+  actual_paid_amount: Money;
+  carryover_credit: Money;
   paid_amount: Money;
   remaining_amount: Money;
+  overpaid_amount: Money;
   status: "unpaid" | "partial" | "paid" | "overpaid";
 }
 

@@ -67,6 +67,7 @@ from .services import (
     is_owner,
     period_summary,
     reconcile_bank,
+    refresh_expense_carryovers,
     trends_data,
     user_household,
     user_membership,
@@ -323,6 +324,10 @@ class PlannedExpenseViewSet(
         period_id = self.request.query_params.get("period")
         return queryset.filter(period_id=period_id) if period_id else queryset
 
+    def perform_update(self, serializer) -> None:
+        planned = serializer.save()
+        refresh_expense_carryovers(planned.period.household, planned.period)
+
     @action(detail=True, methods=["post"], permission_classes=[IsHouseholdOwner])
     def payments(self, request, pk=None) -> Response:
         planned = self.get_object()
@@ -349,6 +354,7 @@ class PlannedExpenseViewSet(
             description=planned.name,
             notes=serializer.validated_data.get("notes", ""),
         )
+        refresh_expense_carryovers(planned.period.household, planned.period)
         return Response(LedgerEntrySerializer(entry).data, status=status.HTTP_201_CREATED)
 
 
@@ -418,10 +424,25 @@ class LedgerEntryViewSet(viewsets.ModelViewSet):
         return queryset.filter(period_id=period_id) if period_id else queryset
 
     def perform_create(self, serializer) -> None:
-        serializer.save(
+        entry = serializer.save(
             household=user_household(self.request.user),
             created_by=self.request.user,
         )
+        if entry.entry_type == LedgerEntry.EntryType.HOUSEHOLD_EXPENSE:
+            refresh_expense_carryovers(entry.household, entry.period)
+
+    def perform_update(self, serializer) -> None:
+        entry = serializer.save()
+        if entry.entry_type == LedgerEntry.EntryType.HOUSEHOLD_EXPENSE:
+            refresh_expense_carryovers(entry.household, entry.period)
+
+    def perform_destroy(self, instance) -> None:
+        household = instance.household
+        period = instance.period
+        is_household_payment = instance.entry_type == LedgerEntry.EntryType.HOUSEHOLD_EXPENSE
+        instance.delete()
+        if is_household_payment:
+            refresh_expense_carryovers(household, period)
 
 
 class PersonalExpenseViewSet(viewsets.ModelViewSet):

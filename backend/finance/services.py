@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Case, DecimalField, F, Sum, Value, When
+from django.db.models import Case, DecimalField, F, Q, Sum, Value, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -50,6 +50,70 @@ def is_owner(user: Any) -> bool:
     return bool(membership and membership.role == membership.Role.OWNER)
 
 
+def _adjacent_month(year: int, month: int, offset: int) -> tuple[int, int]:
+    month_index = year * 12 + month - 1 + offset
+    adjacent_year, zero_based_month = divmod(month_index, 12)
+    return adjacent_year, zero_based_month + 1
+
+
+def _matching_previous_expense(
+    expense: PlannedExpense,
+    previous_expenses: list[PlannedExpense],
+) -> PlannedExpense | None:
+    if expense.template_id:
+        match = next(
+            (
+                candidate
+                for candidate in previous_expenses
+                if candidate.template_id == expense.template_id
+            ),
+            None,
+        )
+        if match:
+            return match
+    normalized_name = expense.name.strip().casefold()
+    return next(
+        (
+            candidate
+            for candidate in previous_expenses
+            if candidate.name.strip().casefold() == normalized_name
+        ),
+        None,
+    )
+
+
+@transaction.atomic
+def refresh_expense_carryovers(
+    household: Household,
+    from_period: MonthlyPeriod,
+) -> None:
+    """Recalculate bill credits from one month through every later existing month."""
+    periods = list(
+        household.periods.filter(
+            Q(year__gt=from_period.year) | Q(year=from_period.year, month__gte=from_period.month)
+        ).order_by("year", "month")
+    )
+    for period in periods:
+        previous_year, previous_month = _adjacent_month(period.year, period.month, -1)
+        previous = household.periods.filter(
+            year=previous_year,
+            month=previous_month,
+        ).first()
+        previous_expenses = (
+            list(previous.planned_expenses.prefetch_related("ledger_entries")) if previous else []
+        )
+        expenses = list(period.planned_expenses.prefetch_related("ledger_entries"))
+        changed: list[PlannedExpense] = []
+        for expense in expenses:
+            prior_expense = _matching_previous_expense(expense, previous_expenses)
+            credit = prior_expense.overpaid_amount if prior_expense else ZERO
+            if expense.carryover_credit != credit:
+                expense.carryover_credit = credit
+                changed.append(expense)
+        if changed:
+            PlannedExpense.objects.bulk_update(changed, ["carryover_credit"])
+
+
 @transaction.atomic
 def generate_month(household: Household, year: int, month: int) -> MonthlyPeriod:
     period, created = MonthlyPeriod.objects.get_or_create(
@@ -58,34 +122,33 @@ def generate_month(household: Household, year: int, month: int) -> MonthlyPeriod
         month=month,
         defaults={"savings_target": household.monthly_savings_target},
     )
-    if not created:
-        return period
-
-    MonthlyIncomePlan.objects.bulk_create(
-        [
-            MonthlyIncomePlan(
-                period=period,
-                template=template,
-                name=template.name,
-                planned_amount=template.amount,
-            )
-            for template in household.income_templates.filter(active=True)
-        ]
-    )
-    last_day = monthrange(year, month)[1]
-    PlannedExpense.objects.bulk_create(
-        [
-            PlannedExpense(
-                period=period,
-                template=template,
-                name=template.name,
-                expected_amount=template.expected_amount,
-                due_date=date(year, month, min(template.due_day, last_day)),
-                reminder_lead_days=template.reminder_lead_days,
-            )
-            for template in household.expense_templates.filter(active=True)
-        ]
-    )
+    if created:
+        MonthlyIncomePlan.objects.bulk_create(
+            [
+                MonthlyIncomePlan(
+                    period=period,
+                    template=template,
+                    name=template.name,
+                    planned_amount=template.amount,
+                )
+                for template in household.income_templates.filter(active=True)
+            ]
+        )
+        last_day = monthrange(year, month)[1]
+        PlannedExpense.objects.bulk_create(
+            [
+                PlannedExpense(
+                    period=period,
+                    template=template,
+                    name=template.name,
+                    expected_amount=template.expected_amount,
+                    due_date=date(year, month, min(template.due_day, last_day)),
+                    reminder_lead_days=template.reminder_lead_days,
+                )
+                for template in household.expense_templates.filter(active=True)
+            ]
+        )
+    refresh_expense_carryovers(household, period)
     return period
 
 
@@ -165,9 +228,15 @@ def period_summary(period: MonthlyPeriod) -> dict[str, Any]:
     personal_spent = period_amount(
         period, LedgerEntry.EntryType.PERSONAL_EXPENSE, LedgerEntry.Direction.DEBIT
     )
-    planned_household = period.planned_expenses.aggregate(
-        total=Coalesce(Sum("expected_amount"), Value(ZERO, output_field=MONEY_FIELD))
-    )["total"]
+    planned_expenses = list(period.planned_expenses.prefetch_related("ledger_entries"))
+    planned_household = sum(
+        (expense.expected_amount for expense in planned_expenses),
+        start=ZERO,
+    )
+    unpaid_household = sum(
+        (expense.remaining_amount for expense in planned_expenses),
+        start=ZERO,
+    )
     planned_income = period.income_plans.aggregate(
         total=Coalesce(Sum("planned_amount"), Value(ZERO, output_field=MONEY_FIELD))
     )["total"]
@@ -183,7 +252,7 @@ def period_summary(period: MonthlyPeriod) -> dict[str, Any]:
         "income_received": income_received,
         "planned_household": planned_household,
         "household_paid": household_paid,
-        "house_balance": planned_household - household_paid,
+        "house_balance": unpaid_household,
         "personal_spent": personal_spent,
         "savings_target": period.savings_target,
         "net_new_savings": net_new_savings,
@@ -213,8 +282,11 @@ def dashboard_data(household: Household, period: MonthlyPeriod) -> dict[str, Any
             "id": expense.id,
             "name": expense.name,
             "expected_amount": expense.expected_amount,
+            "actual_paid_amount": expense.actual_paid_amount,
+            "carryover_credit": expense.carryover_credit,
             "paid_amount": expense.paid_amount,
             "remaining_amount": expense.remaining_amount,
+            "overpaid_amount": expense.overpaid_amount,
             "due_date": expense.due_date,
             "status": expense.payment_status,
         }

@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowRightLeft,
   ArrowDownToLine,
+  CalendarPlus,
   CalendarDays,
   Check,
   CircleDollarSign,
@@ -15,8 +17,9 @@ import { type FormEvent, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { api, deleteJson, formatPkr, money, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
+import { SavingsMovementForm } from "../components/SavingsMovementForm";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
-import type { Month, Paginated, Session } from "../types";
+import type { Month, Paginated, SavingsGoal, Session } from "../types";
 
 interface PersonalExpense {
   id: number;
@@ -49,6 +52,8 @@ export function MonthPage() {
   const queryClient = useQueryClient();
   const [paymentTarget, setPaymentTarget] = useState<number | null>(null);
   const [incomeTarget, setIncomeTarget] = useState<number | null>(null);
+  const [addMonthOpen, setAddMonthOpen] = useState(false);
+  const [savingsOpen, setSavingsOpen] = useState(false);
   const [personalOpen, setPersonalOpen] = useState(false);
   const [personalEdit, setPersonalEdit] = useState<PersonalExpense | null>(null);
   const [sharedEdit, setSharedEdit] = useState<LedgerEntry | null>(null);
@@ -71,6 +76,11 @@ export function MonthPage() {
     queryFn: () => api<Paginated<LedgerEntry>>("/ledger/"),
     enabled: session.is_owner,
   });
+  const goals = useQuery({
+    queryKey: ["savings-goals"],
+    queryFn: () => api<Paginated<SavingsGoal>>("/savings-goals/"),
+    enabled: session.is_owner,
+  });
 
   const refresh = async () => {
     await Promise.all([
@@ -78,6 +88,8 @@ export function MonthPage() {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       queryClient.invalidateQueries({ queryKey: ["personal-expenses"] }),
       queryClient.invalidateQueries({ queryKey: ["ledger"] }),
+      queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+      queryClient.invalidateQueries({ queryKey: ["trends"] }),
     ]);
   };
 
@@ -121,25 +133,46 @@ export function MonthPage() {
                 ))}
               </select>
             </label>
+            {session.is_owner && (
+              <Modal
+                title="Add a previous month"
+                description="Create a monthly workspace from your recurring plan, then enter its complete historical flow."
+                trigger={
+                  <button className="button secondary">
+                    <CalendarPlus size={17} /> Add month
+                  </button>
+                }
+                open={addMonthOpen}
+                onOpenChange={setAddMonthOpen}
+              >
+                <AddMonthForm
+                  onCreated={async (created) => {
+                    setAddMonthOpen(false);
+                    await queryClient.invalidateQueries({ queryKey: ["months"] });
+                    navigate(`/app/month/${created.label}`);
+                  }}
+                />
+              </Modal>
+            )}
             <Modal
-            title="Add a private expense"
-            description="Only you can see the entry details. The household sees an anonymous combined total."
-            trigger={
-              <button className="button primary">
-                <Plus size={17} /> Personal expense
-              </button>
-            }
-            open={personalOpen}
-            onOpenChange={setPersonalOpen}
-          >
-            <PersonalExpenseForm
-              period={data.id}
-              defaultDate={`${data.label}-01`}
-              onSaved={async () => {
-                setPersonalOpen(false);
-                await refresh();
-              }}
-            />
+              title="Add a private expense"
+              description="Only you can see the entry details. The household sees an anonymous combined total."
+              trigger={
+                <button className="button primary">
+                  <Plus size={17} /> Personal expense
+                </button>
+              }
+              open={personalOpen}
+              onOpenChange={setPersonalOpen}
+            >
+              <PersonalExpenseForm
+                period={data.id}
+                defaultDate={`${data.label}-01`}
+                onSaved={async () => {
+                  setPersonalOpen(false);
+                  await refresh();
+                }}
+              />
             </Modal>
           </div>
         }
@@ -161,7 +194,17 @@ export function MonthPage() {
         <div>
           <span>Savings target</span>
           <strong>{formatPkr(data.savings_target)}</strong>
-          <small>Reserved before personal spending</small>
+          {session.is_owner ? (
+            <button
+              className="table-action summary-action"
+              onClick={() => setSavingsOpen(true)}
+              disabled={!goals.data?.results.length}
+            >
+              <ArrowRightLeft size={14} /> Allocate for this month
+            </button>
+          ) : (
+            <small>Reserved before personal spending</small>
+          )}
         </div>
       </section>
 
@@ -222,6 +265,7 @@ export function MonthPage() {
                   <th>Due</th>
                   <th>Expected</th>
                   <th>Paid</th>
+                  <th>Unpaid</th>
                   <th>Status</th>
                   <th />
                 </tr>
@@ -240,7 +284,19 @@ export function MonthPage() {
                       )}
                     </td>
                     <td>{formatPkr(expense.expected_amount)}</td>
-                    <td>{formatPkr(expense.paid_amount)}</td>
+                    <td>
+                      {formatPkr(expense.paid_amount)}
+                      {money(expense.carryover_credit) > 0 && (
+                        <small className="carryover-note">
+                          {formatPkr(expense.carryover_credit)} carried forward
+                        </small>
+                      )}
+                    </td>
+                    <td>
+                      <strong className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}>
+                        {formatPkr(expense.remaining_amount)}
+                      </strong>
+                    </td>
                     <td>
                       <span className={`status-chip ${expense.status}`}>
                         {expense.status}
@@ -394,6 +450,31 @@ export function MonthPage() {
       </section>
 
       <Modal
+        title={`Move savings for ${new Date(data.year, data.month - 1).toLocaleDateString(
+          "en-PK",
+          { month: "long", year: "numeric" },
+        )}`}
+        description="This records a virtual allocation for the selected month without creating another bank transaction."
+        trigger={<span />}
+        open={savingsOpen}
+        onOpenChange={setSavingsOpen}
+      >
+        {goals.data?.results.length ? (
+          <SavingsMovementForm
+            goals={goals.data.results}
+            period={data.id}
+            defaultDate={`${data.label}-01`}
+            onSaved={async () => {
+              setSavingsOpen(false);
+              await refresh();
+            }}
+          />
+        ) : (
+          <p className="form-error">Create a savings goal before allocating savings.</p>
+        )}
+      </Modal>
+
+      <Modal
         title="Record a household payment"
         description="Partial payments are supported and the remaining balance updates automatically."
         trigger={<span />}
@@ -492,6 +573,54 @@ export function MonthPage() {
         )}
       </Modal>
     </>
+  );
+}
+
+function previousMonthLabel() {
+  const previous = new Date();
+  previous.setDate(1);
+  previous.setMonth(previous.getMonth() - 1);
+  return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function AddMonthForm({ onCreated }: { onCreated: (month: Month) => Promise<void> }) {
+  const [monthValue, setMonthValue] = useState(previousMonthLabel);
+  const mutation = useMutation({
+    mutationFn: () => {
+      const [year, month] = monthValue.split("-").map(Number);
+      return postJson<Month>("/months/generate/", { year, month });
+    },
+    onSuccess: onCreated,
+  });
+
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        mutation.mutate();
+      }}
+    >
+      <label>
+        Month
+        <input
+          required
+          type="month"
+          min="2000-01"
+          max="2100-12"
+          value={monthValue}
+          onChange={(event) => setMonthValue(event.target.value)}
+        />
+      </label>
+      <p className="field-help">
+        Income, bills, due dates, and the savings target are copied from your recurring plan.
+      </p>
+      {mutation.isError && <p className="form-error">Could not create this month.</p>}
+      <button className="button primary full" disabled={mutation.isPending}>
+        <CalendarPlus size={17} />
+        {mutation.isPending ? "Creating…" : "Create monthly workspace"}
+      </button>
+    </form>
   );
 }
 
