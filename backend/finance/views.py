@@ -71,6 +71,8 @@ from .services import (
     period_summary,
     reconcile_bank,
     refresh_expense_carryovers,
+    sync_recurring_expense_to_latest_month,
+    sync_recurring_income_to_latest_month,
     trends_data,
     user_household,
     user_membership,
@@ -264,6 +266,10 @@ class RecurringIncomeViewSet(HouseholdScopedViewSet):
         household = user_household(self.request.user)
         return RecurringIncome.objects.filter(household=household) if household else []
 
+    def perform_update(self, serializer) -> None:
+        template = serializer.save()
+        sync_recurring_income_to_latest_month(template)
+
 
 class RecurringExpenseViewSet(HouseholdScopedViewSet):
     queryset = RecurringExpense.objects.all()
@@ -272,6 +278,10 @@ class RecurringExpenseViewSet(HouseholdScopedViewSet):
     def get_queryset(self):
         household = user_household(self.request.user)
         return RecurringExpense.objects.filter(household=household) if household else []
+
+    def perform_update(self, serializer) -> None:
+        template = serializer.save()
+        sync_recurring_expense_to_latest_month(template)
 
 
 class MonthViewSet(

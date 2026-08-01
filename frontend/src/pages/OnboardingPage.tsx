@@ -143,21 +143,41 @@ export function OnboardingPage({ session }: { session: Session }) {
               <div className="setup-section">
                 <div className="setup-title"><div><Banknote size={18} /><span><strong>Income sources</strong><small>At least one is required</small></span></div><button onClick={() => setIncomes([...incomes, { name: "", amount: "" }])}><Plus size={16} /> Add</button></div>
                 {incomes.map((income, index) => (
-                  <div className="setup-row" key={index}>
-                    <input aria-label="Income name" value={income.name} onChange={(event) => setIncomes(incomes.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="Monthly salary" />
-                    <div className="money-input"><span>Rs</span><input aria-label="Income amount" type="number" value={income.amount} onChange={(event) => setIncomes(incomes.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="0" /></div>
-                    {incomes.length > 1 && <button className="icon-button" onClick={() => setIncomes(incomes.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /></button>}
+                  <div className="setup-entry income" key={index}>
+                    <label className="setup-field">
+                      <span>Income source name</span>
+                      <input aria-label="Income source name" value={income.name} onChange={(event) => setIncomes(incomes.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="e.g. Monthly salary" />
+                      <small>What should we call this income?</small>
+                    </label>
+                    <label className="setup-field">
+                      <span>Expected monthly income</span>
+                      <div className="money-input"><span>Rs</span><input aria-label="Expected monthly income" type="number" min="0.01" step="0.01" value={income.amount} onChange={(event) => setIncomes(incomes.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="e.g. 250000" /></div>
+                      <small>Enter the amount you normally receive.</small>
+                    </label>
+                    {incomes.length > 1 && <button type="button" className="icon-button setup-remove" aria-label="Remove income source" onClick={() => setIncomes(incomes.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /></button>}
                   </div>
                 ))}
               </div>
               <div className="setup-section">
                 <div className="setup-title"><div><ReceiptText size={18} /><span><strong>Household bills</strong><small>Add only recurring planned costs</small></span></div><button onClick={() => setExpenses([...expenses, { name: "", expected_amount: "", due_day: "1", reminder_lead_days: "3" }])}><Plus size={16} /> Add</button></div>
                 {expenses.map((expense, index) => (
-                  <div className="setup-row expense" key={index}>
-                    <input aria-label="Expense name" value={expense.name} onChange={(event) => setExpenses(expenses.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="Rent" />
-                    <div className="money-input"><span>Rs</span><input aria-label="Expense amount" type="number" value={expense.expected_amount} onChange={(event) => setExpenses(expenses.map((item, itemIndex) => itemIndex === index ? { ...item, expected_amount: event.target.value } : item))} placeholder="0" /></div>
-                    <input aria-label="Due day" type="number" min="1" max="31" value={expense.due_day} onChange={(event) => setExpenses(expenses.map((item, itemIndex) => itemIndex === index ? { ...item, due_day: event.target.value } : item))} title="Due day" />
-                    <button className="icon-button" onClick={() => setExpenses(expenses.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /></button>
+                  <div className="setup-entry expense" key={index}>
+                    <label className="setup-field">
+                      <span>Household bill name</span>
+                      <input aria-label="Household bill name" value={expense.name} onChange={(event) => setExpenses(expenses.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="e.g. House rent" />
+                      <small>What recurring bill is this?</small>
+                    </label>
+                    <label className="setup-field">
+                      <span>Expected monthly bill amount</span>
+                      <div className="money-input"><span>Rs</span><input aria-label="Expected monthly bill amount" type="number" min="0.01" step="0.01" value={expense.expected_amount} onChange={(event) => setExpenses(expenses.map((item, itemIndex) => itemIndex === index ? { ...item, expected_amount: event.target.value } : item))} placeholder="e.g. 50000" /></div>
+                      <small>How much do you normally expect to pay?</small>
+                    </label>
+                    <label className="setup-field">
+                      <span>Due day of month</span>
+                      <input aria-label="Due day of month" type="number" min="1" max="31" value={expense.due_day} onChange={(event) => setExpenses(expenses.map((item, itemIndex) => itemIndex === index ? { ...item, due_day: event.target.value } : item))} />
+                      <small>Calendar day 1–31. Short months use their final day.</small>
+                    </label>
+                    <button type="button" className="icon-button setup-remove" aria-label="Remove household bill" onClick={() => setExpenses(expenses.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /></button>
                   </div>
                 ))}
               </div>
@@ -173,11 +193,23 @@ export function OnboardingPage({ session }: { session: Session }) {
               <div className="setup-section">
                 <div className="setup-title"><div><PiggyBank size={18} /><span><strong>Savings goals</strong><small>Targets are optional</small></span></div><button onClick={() => setGoals([...goals, { name: "", opening_balance: "0", target_amount: "" }])}><Plus size={16} /> Add</button></div>
                 {goals.map((goal, index) => (
-                  <div className="goal-setup" key={index}>
-                    <input value={goal.name} onChange={(event) => setGoals(goals.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="Emergency fund" />
-                    <label><small>Already saved</small><input type="number" min="0" value={goal.opening_balance} onChange={(event) => setGoals(goals.map((item, itemIndex) => itemIndex === index ? { ...item, opening_balance: event.target.value } : item))} /></label>
-                    <label><small>Goal target</small><input type="number" min="0" value={goal.target_amount} onChange={(event) => setGoals(goals.map((item, itemIndex) => itemIndex === index ? { ...item, target_amount: event.target.value } : item))} placeholder="Optional" /></label>
-                    <button className="icon-button" onClick={() => setGoals(goals.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /></button>
+                  <div className="setup-entry goal" key={index}>
+                    <label className="setup-field">
+                      <span>Savings goal name</span>
+                      <input aria-label="Savings goal name" value={goal.name} onChange={(event) => setGoals(goals.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="e.g. Emergency fund" />
+                      <small>What are you saving this money for?</small>
+                    </label>
+                    <label className="setup-field">
+                      <span>Amount already saved</span>
+                      <div className="money-input"><span>Rs</span><input aria-label="Amount already saved" type="number" min="0" step="0.01" value={goal.opening_balance} onChange={(event) => setGoals(goals.map((item, itemIndex) => itemIndex === index ? { ...item, opening_balance: event.target.value } : item))} /></div>
+                      <small>Only money already included in your bank balance.</small>
+                    </label>
+                    <label className="setup-field">
+                      <span>Goal target</span>
+                      <div className="money-input"><span>Rs</span><input aria-label="Goal target" type="number" min="0.01" step="0.01" value={goal.target_amount} onChange={(event) => setGoals(goals.map((item, itemIndex) => itemIndex === index ? { ...item, target_amount: event.target.value } : item))} placeholder="Optional" /></div>
+                      <small>Optional total amount you want to reach.</small>
+                    </label>
+                    <button type="button" className="icon-button setup-remove" aria-label="Remove savings goal" onClick={() => setGoals(goals.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /></button>
                   </div>
                 ))}
               </div>

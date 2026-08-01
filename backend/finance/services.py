@@ -24,6 +24,8 @@ from .models import (
     MonthlyPeriod,
     Notification,
     PlannedExpense,
+    RecurringExpense,
+    RecurringIncome,
     ReminderDelivery,
     SavingsGoal,
     SavingsMovement,
@@ -114,6 +116,45 @@ def refresh_expense_carryovers(
                 changed.append(expense)
         if changed:
             PlannedExpense.objects.bulk_update(changed, ["carryover_credit"])
+
+
+@transaction.atomic
+def sync_recurring_income_to_latest_month(template: RecurringIncome) -> None:
+    """Keep the newest monthly snapshot aligned after its source template is edited."""
+    latest_period = (
+        template.household.periods.filter(is_deleted=False).order_by("-year", "-month").first()
+    )
+    if latest_period is None:
+        return
+    template.monthly_snapshots.filter(period=latest_period).update(
+        name=template.name,
+        planned_amount=template.amount,
+        updated_at=timezone.now(),
+    )
+
+
+@transaction.atomic
+def sync_recurring_expense_to_latest_month(template: RecurringExpense) -> None:
+    """Keep the newest bill snapshot aligned without rewriting earlier months."""
+    latest_period = (
+        template.household.periods.filter(is_deleted=False).order_by("-year", "-month").first()
+    )
+    if latest_period is None:
+        return
+    last_day = monthrange(latest_period.year, latest_period.month)[1]
+    changed = template.monthly_snapshots.filter(period=latest_period).update(
+        name=template.name,
+        expected_amount=template.expected_amount,
+        due_date=date(
+            latest_period.year,
+            latest_period.month,
+            min(template.due_day, last_day),
+        ),
+        reminder_lead_days=template.reminder_lead_days,
+        updated_at=timezone.now(),
+    )
+    if changed:
+        refresh_expense_carryovers(template.household, latest_period)
 
 
 @transaction.atomic

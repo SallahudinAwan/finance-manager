@@ -13,6 +13,7 @@ from finance.models import (
     Membership,
     MonthlyPeriod,
     RecurringExpense,
+    RecurringIncome,
     SavingsGoal,
     SavingsMovement,
 )
@@ -75,6 +76,103 @@ def test_member_cannot_record_shared_payment() -> None:
 
     assert response.status_code == 403
     assert household.ledger_entries.count() == 0
+
+
+def test_owner_template_edits_update_only_the_latest_month_snapshot() -> None:
+    owner, household = create_household()
+    income = RecurringIncome.objects.create(
+        household=household,
+        name="Salary",
+        amount=Decimal("500000.00"),
+    )
+    bill = RecurringExpense.objects.create(
+        household=household,
+        name="Electricity",
+        expected_amount=Decimal("5000.00"),
+        due_day=10,
+    )
+    january = generate_month(household, 2026, 1)
+    february = generate_month(household, 2026, 2)
+    client = APIClient()
+    client.force_authenticate(owner)
+
+    income_response = client.patch(
+        f"/api/v1/income-templates/{income.id}/",
+        {"name": "Main salary", "amount": "525000.00"},
+        format="json",
+    )
+    expense_response = client.patch(
+        f"/api/v1/expense-templates/{bill.id}/",
+        {
+            "name": "Power bill",
+            "expected_amount": "6500.00",
+            "due_day": 31,
+            "reminder_lead_days": 5,
+        },
+        format="json",
+    )
+
+    january_income = january.income_plans.get(template=income)
+    february_income = february.income_plans.get(template=income)
+    january_bill = january.planned_expenses.get(template=bill)
+    february_bill = february.planned_expenses.get(template=bill)
+    assert income_response.status_code == 200
+    assert expense_response.status_code == 200
+    assert (january_income.name, january_income.planned_amount) == (
+        "Salary",
+        Decimal("500000.00"),
+    )
+    assert (february_income.name, february_income.planned_amount) == (
+        "Main salary",
+        Decimal("525000.00"),
+    )
+    assert (january_bill.name, january_bill.expected_amount, january_bill.due_date) == (
+        "Electricity",
+        Decimal("5000.00"),
+        date(2026, 1, 10),
+    )
+    assert (
+        february_bill.name,
+        february_bill.expected_amount,
+        february_bill.due_date,
+        february_bill.reminder_lead_days,
+    ) == ("Power bill", Decimal("6500.00"), date(2026, 2, 28), 5)
+
+
+def test_member_cannot_edit_recurring_plan_templates() -> None:
+    _, household = create_household()
+    member = create_member(household)
+    income = RecurringIncome.objects.create(
+        household=household,
+        name="Salary",
+        amount=Decimal("500000.00"),
+    )
+    bill = RecurringExpense.objects.create(
+        household=household,
+        name="Rent",
+        expected_amount=Decimal("38000.00"),
+        due_day=1,
+    )
+    client = APIClient()
+    client.force_authenticate(member)
+
+    income_response = client.patch(
+        f"/api/v1/income-templates/{income.id}/",
+        {"amount": "1.00"},
+        format="json",
+    )
+    expense_response = client.patch(
+        f"/api/v1/expense-templates/{bill.id}/",
+        {"expected_amount": "1.00"},
+        format="json",
+    )
+
+    income.refresh_from_db()
+    bill.refresh_from_db()
+    assert income_response.status_code == 403
+    assert expense_response.status_code == 403
+    assert income.amount == Decimal("500000.00")
+    assert bill.expected_amount == Decimal("38000.00")
 
 
 def test_owner_can_edit_a_shared_transaction_without_reclassifying_it() -> None:

@@ -13,7 +13,7 @@ import {
   Trash2,
   WalletCards,
 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type RefObject, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import {
   api,
@@ -67,6 +67,7 @@ export function MonthPage() {
   const [personalEdit, setPersonalEdit] = useState<PersonalExpense | null>(null);
   const [sharedEdit, setSharedEdit] = useState<LedgerEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const paymentAmountRef = useRef<HTMLInputElement>(null);
   const month = useQuery({
     queryKey: ["month", label ?? "current"],
     queryFn: () =>
@@ -577,6 +578,7 @@ export function MonthPage() {
         trigger={<span />}
         open={paymentTarget !== null}
         onOpenChange={(open) => !open && setPaymentTarget(null)}
+        initialFocusRef={paymentAmountRef}
       >
         {paymentExpense && (
           <div className="household-payment-form">
@@ -584,6 +586,7 @@ export function MonthPage() {
             <MoneyMovementForm
               label="Payment amount"
               defaultDate={`${data.label}-01`}
+              amountInputRef={paymentAmountRef}
               onSubmit={(body) =>
                 postJson(`/planned-expenses/${paymentExpense.id}/payments/`, body)
               }
@@ -974,11 +977,13 @@ function MoneyMovementForm({
   defaultDate,
   onSubmit,
   onSaved,
+  amountInputRef,
 }: {
   label: string;
   defaultDate: string;
   onSubmit: (body: unknown) => Promise<unknown>;
   onSaved: () => Promise<void>;
+  amountInputRef?: RefObject<HTMLInputElement | null>;
 }) {
   const [amount, setAmount] = useState("");
   const [dateValue, setDateValue] = useState(defaultDate);
@@ -1001,6 +1006,7 @@ function MoneyMovementForm({
         <div className="money-input">
           <span>Rs</span>
           <input
+            ref={amountInputRef}
             required
             min="0.01"
             step="0.01"
