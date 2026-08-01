@@ -410,6 +410,14 @@ const urduMessages: Record<string, string> = {
     "آمدنی کے ذریعے کے ساتھ ’وصول کریں‘ صرف تب استعمال کریں جب رقم بینک میں پہنچ جائے۔",
   "Use Add payment beside a bill; partial and overpayments are supported and unpaid amounts remain visible.":
     "بل کے ساتھ ’ادائیگی شامل کریں‘ استعمال کریں؛ جزوی اور زائد ادائیگی ممکن ہے اور بقایا رقم نظر آتی رہے گی۔",
+  "Track every household expense against its plan":
+    "ہر گھریلو خرچ کو اس کے منصوبے کے مقابل ریکارڈ کریں",
+  "The Household expenses table keeps the expected amount, due date, paid amount, unpaid balance, and current payment status together.":
+    "گھریلو اخراجات کی جدول متوقع رقم، آخری تاریخ، ادا شدہ رقم، بقایا اور موجودہ ادائیگی کی حالت ایک جگہ دکھاتی ہے۔",
+  "Use Add payment to record a full, partial, or overpayment without changing the original expectation.":
+    "اصل متوقع رقم بدلے بغیر مکمل، جزوی یا زائد ادائیگی ریکارڈ کرنے کے لیے ’ادائیگی شامل کریں‘ استعمال کریں۔",
+  "Unpaid amounts stay visible, while eligible overpayments can be carried into the following month.":
+    "غیر ادا شدہ رقم نظر آتی رہتی ہے جبکہ متعلقہ زائد ادائیگی اگلے مہینے میں منتقل کی جا سکتی ہے۔",
   "Your actual household cash movements live here": "گھرانے کے حقیقی مالی لین دین یہاں محفوظ ہیں",
   "Received income, household payments, and reconciliation adjustments appear in the shared transaction history.":
     "وصول شدہ آمدنی، گھریلو ادائیگیاں اور بینک تصدیقی ایڈجسٹمنٹ مشترکہ لین دین کی تاریخ میں نظر آتی ہیں۔",
@@ -432,6 +440,14 @@ const urduMessages: Record<string, string> = {
     "مالک ’منتقلی شامل کریں‘ سے جمع، نکلوائی، مختص رقم یا منتقلی ریکارڈ کرتے ہیں۔",
   "Transfers and monthly allocations move money internally; external contributions and withdrawals also affect calculated bank.":
     "اہداف کے درمیان منتقلی اور ماہانہ تقسیم اندرونی حرکت ہے؛ بیرونی جمع اور نکلوائی حساب شدہ بینک کو بھی بدلتی ہے۔",
+  "Savings buckets": "بچت کے خانے",
+  "See how your reserved money is distributed": "دیکھیں آپ کی محفوظ رقم کیسے تقسیم ہوئی ہے",
+  "Each savings bucket shows its current reserved balance, optional target, progress, and how much remains to reach that target.":
+    "ہر بچت خانہ موجودہ محفوظ بیلنس، اختیاری ہدف، پیش رفت اور ہدف تک باقی رقم دکھاتا ہے۔",
+  "Use separate buckets for purposes such as emergencies, travel, education, gifts, or family goals.":
+    "ہنگامی ضرورت، سفر، تعلیم، تحائف یا خاندانی اہداف کے لیے الگ بچت خانے استعمال کریں۔",
+  "Editing a bucket changes its name, target, or active status; use a savings movement when the balance itself changes.":
+    "خانے میں ترمیم سے نام، ہدف یا فعال حالت بدلتی ہے؛ بیلنس بدلنے پر بچت کی منتقلی ریکارڈ کریں۔",
   "Savings history": "بچت کی تاریخ",
   "See every savings credit and debit": "بچت کی ہر جمع اور نکلوائی دیکھیں",
   "The savings ledger explains how each goal balance changed, including the source, destination, movement type, amount, and date.":

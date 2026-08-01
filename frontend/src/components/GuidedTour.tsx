@@ -119,6 +119,19 @@ const allSteps: TourStep[] = [
     ],
   },
   {
+    selector: '[data-tour="planned-obligations"]',
+    path: "/app/month",
+    icon: <ReceiptText size={22} />,
+    eyebrow: "Planned obligations",
+    title: "Track every household expense against its plan",
+    description:
+      "The Household expenses table keeps the expected amount, due date, paid amount, unpaid balance, and current payment status together.",
+    details: [
+      "Use Add payment to record a full, partial, or overpayment without changing the original expectation.",
+      "Unpaid amounts stay visible, while eligible overpayments can be carried into the following month.",
+    ],
+  },
+  {
     selector: '[data-tour="month-transactions"]',
     path: "/app/month",
     icon: <ReceiptText size={22} />,
@@ -156,6 +169,19 @@ const allSteps: TourStep[] = [
     details: [
       "Owners use Add movement to record a contribution, withdrawal, allocation, or transfer.",
       "Transfers and monthly allocations move money internally; external contributions and withdrawals also affect calculated bank.",
+    ],
+  },
+  {
+    selector: '[data-tour="savings-buckets"]',
+    path: "/app/savings",
+    icon: <PiggyBank size={22} />,
+    eyebrow: "Savings buckets",
+    title: "See how your reserved money is distributed",
+    description:
+      "Each savings bucket shows its current reserved balance, optional target, progress, and how much remains to reach that target.",
+    details: [
+      "Use separate buckets for purposes such as emergencies, travel, education, gifts, or family goals.",
+      "Editing a bucket changes its name, target, or active status; use a savings movement when the balance itself changes.",
     ],
   },
   {

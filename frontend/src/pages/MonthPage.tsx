@@ -364,7 +364,7 @@ export function MonthPage() {
           </div>
         </section>
 
-        <section className="panel span-2">
+        <section className="panel span-2" data-tour="planned-obligations">
           <div className="panel-heading">
             <div>
               <span className="panel-kicker">Planned obligations</span>
