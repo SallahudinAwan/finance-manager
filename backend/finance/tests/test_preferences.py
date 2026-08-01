@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
@@ -44,6 +46,23 @@ def test_session_requires_language_selection_until_preference_is_saved() -> None
     assert completed.status_code == 200
     assert completed.data["tour_completed"] is True
     assert client.get("/api/v1/session/").data["user"]["tour_completed"] is True
+
+
+def test_session_bootstrap_is_not_blocked_by_the_user_throttle() -> None:
+    user = get_user_model().objects.create_user(
+        username="session@example.com",
+        email="session@example.com",
+    )
+    client = APIClient()
+    client.force_authenticate(user)
+
+    with patch(
+        "rest_framework.throttling.UserRateThrottle.allow_request",
+        return_value=False,
+    ):
+        response = client.get("/api/v1/session/")
+
+    assert response.status_code == 200
 
 
 def test_language_preference_rejects_unsupported_values() -> None:

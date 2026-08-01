@@ -100,6 +100,9 @@ class HealthDetailView(APIView):
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class SessionView(APIView):
     permission_classes = [IsAuthenticated]
+    # The frontend uses this inexpensive endpoint to decide whether the browser
+    # has a valid login. Throttling it makes a 429 look like a signed-out user.
+    throttle_classes = []
 
     @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request) -> Response:
