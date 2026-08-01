@@ -365,6 +365,136 @@ const urduMessages: Record<string, string> = {
   "Start guided tour": "رہنمائی کا دورہ شروع کریں",
   "Skip guided tour": "رہنمائی کا دورہ چھوڑیں",
   "Welcome to Ravani": "روانی میں خوش آمدید",
+  "Your monthly money has a clear flow now": "اب آپ کے ماہانہ پیسے کی روانی واضح ہے",
+  "Ravani turns your salary, household commitments, personal spending, savings, and real bank balance into one connected monthly plan.":
+    "روانی آپ کی تنخواہ، گھریلو ذمہ داریوں، ذاتی اخراجات، بچت اور حقیقی بینک بیلنس کو ایک مربوط ماہانہ منصوبے میں بدلتی ہے۔",
+  "Record what actually happened instead of replacing your original plan.":
+    "اصل منصوبہ بدلنے کے بجائے وہی ریکارڈ کریں جو حقیقت میں ہوا۔",
+  "This walkthrough will open each important area and show you what to do there.":
+    "یہ رہنمائی ہر اہم حصے کو کھول کر دکھائے گی کہ وہاں کیا کرنا ہے۔",
+  "Begin each visit with the big picture": "ہر بار آغاز مکمل مالی تصویر سے کریں",
+  "Overview is your financial home screen. It answers what is available, reserved, unpaid, and reflected in the bank.":
+    "جائزہ آپ کی مالی ہوم اسکرین ہے۔ یہاں دستیاب، محفوظ، بقایا اور بینک میں ظاہر ہونے والی رقم واضح ہوتی ہے۔",
+  "Use Open month when you need to record new activity.":
+    "نئی سرگرمی ریکارڈ کرنے کے لیے ’مہینہ کھولیں‘ استعمال کریں۔",
+  "The left navigation takes you to every workspace; on mobile, open it with the menu button.":
+    "بائیں جانب نیویگیشن سے ہر ورک اسپیس کھلتی ہے؛ موبائل پر اسے مینو بٹن سے کھولیں۔",
+  "Dashboard summary": "ڈیش بورڈ خلاصہ",
+  "Read these four numbers together": "ان چار اعداد کو ایک ساتھ سمجھیں",
+  "Safe to spend is what remains after planned bills, savings, and personal spending. Calculated bank is built from recorded cash flow.":
+    "خرچ کے لیے محفوظ رقم منصوبہ شدہ بلوں، بچت اور ذاتی اخراجات کے بعد باقی رقم ہے۔ حساب شدہ بینک ریکارڈ شدہ کیش فلو سے بنتا ہے۔",
+  "House balance shows household obligations still unpaid.":
+    "گھریلو بقایا وہ ذمہ داریاں دکھاتا ہے جو ابھی ادا نہیں ہوئیں۔",
+  "Savings reserved is money still in your bank but protected inside savings goals.":
+    "محفوظ بچت وہ رقم ہے جو بینک میں موجود ہے مگر بچت کے اہداف میں مختص ہے۔",
+  "Monthly health": "ماہانہ مالی صحت",
+  "Spot trends and unfinished work": "رجحانات اور باقی کام فوراً پہچانیں",
+  "The dashboard compares income with spending, tracks progress toward this month’s savings target, and lists bills still waiting.":
+    "ڈیش بورڈ آمدنی اور اخراجات کا موازنہ، ماہانہ بچت کی پیش رفت اور باقی بلوں کی فہرست دکھاتا ہے۔",
+  "A reconciliation warning means Ravani’s calculated balance differs from the balance you entered from your bank.":
+    "بینک تصدیق کی تنبیہ کا مطلب ہے کہ روانی کا حساب شدہ بیلنس آپ کے درج کردہ اصل بینک بیلنس سے مختلف ہے۔",
+  "These cards update automatically whenever you record or edit a transaction.":
+    "لین دین ریکارڈ یا تبدیل کرتے ہی یہ کارڈ خودکار طور پر اپ ڈیٹ ہوتے ہیں۔",
+  "This is where the month is recorded": "مہینے کا مکمل حساب یہاں ریکارڈ ہوتا ہے",
+  "Choose any existing month, add a current or previous month, and record income, bills, savings allocations, and private expenses.":
+    "کوئی موجودہ مہینہ منتخب کریں، حالیہ یا پچھلا مہینہ شامل کریں اور آمدنی، بل، بچت کی تقسیم اور ذاتی اخراجات ریکارڈ کریں۔",
+  "Recurring income and bills are copied into a month as a plan; only recorded payments affect cash flow.":
+    "مستقل آمدنی اور بل منصوبے کے طور پر مہینے میں نقل ہوتے ہیں؛ صرف ریکارڈ شدہ ادائیگیاں کیش فلو بدلتی ہیں۔",
+  "When creating the next month, Ravani helps distribute eligible leftovers and unpaid amounts.":
+    "اگلا مہینہ بناتے وقت روانی متعلقہ بچی ہوئی اور غیر ادا شدہ رقم تقسیم کرنے میں مدد کرتی ہے۔",
+  "Plan and progress": "منصوبہ اور پیش رفت",
+  "Compare the plan with what was paid": "منصوبے کا اصل ادائیگی سے موازنہ کریں",
+  "The monthly summary shows the household plan, total paid, completion progress, and fixed savings target for the selected month.":
+    "ماہانہ خلاصہ منتخب مہینے کا گھریلو منصوبہ، کل ادائیگی، تکمیل کی پیش رفت اور مقررہ بچت کا ہدف دکھاتا ہے۔",
+  "Use Receive beside an income source only when money reaches your bank.":
+    "آمدنی کے ذریعے کے ساتھ ’وصول کریں‘ صرف تب استعمال کریں جب رقم بینک میں پہنچ جائے۔",
+  "Use Add payment beside a bill; partial and overpayments are supported and unpaid amounts remain visible.":
+    "بل کے ساتھ ’ادائیگی شامل کریں‘ استعمال کریں؛ جزوی اور زائد ادائیگی ممکن ہے اور بقایا رقم نظر آتی رہے گی۔",
+  "Your actual household cash movements live here": "گھرانے کے حقیقی مالی لین دین یہاں محفوظ ہیں",
+  "Received income, household payments, and reconciliation adjustments appear in the shared transaction history.":
+    "وصول شدہ آمدنی، گھریلو ادائیگیاں اور بینک تصدیقی ایڈجسٹمنٹ مشترکہ لین دین کی تاریخ میں نظر آتی ہیں۔",
+  "Edit an entry to correct its date, amount, or notes; delete it if it should not exist.":
+    "تاریخ، رقم یا نوٹس درست کرنے کے لیے اندراج میں ترمیم کریں؛ غیر ضروری ہو تو حذف کریں۔",
+  "Every correction immediately recalculates the dashboard, bank balance, and reports.":
+    "ہر درستگی ڈیش بورڈ، بینک بیلنس اور رپورٹس کا حساب فوراً دوبارہ کرتی ہے۔",
+  "Private spending": "ذاتی اخراجات",
+  "Personal expense details stay private": "ذاتی اخراجات کی تفصیل نجی رہتی ہے",
+  "Add your own day-to-day spending from the monthly workspace, then edit or delete it from Your personal expenses.":
+    "ماہانہ ورک اسپیس سے روزمرہ ذاتی خرچ شامل کریں، پھر ’آپ کے ذاتی اخراجات‘ میں اسے تبدیل یا حذف کریں۔",
+  "Other members cannot see your descriptions, notes, or individual entries.":
+    "دوسرے ارکان آپ کی تفصیل، نوٹس یا انفرادی اندراجات نہیں دیکھ سکتے۔",
+  "The household dashboard uses only an anonymous combined personal-spending total.":
+    "گھرانے کا ڈیش بورڈ صرف بغیر نام کے مشترکہ ذاتی اخراجات کا مجموعہ استعمال کرتا ہے۔",
+  "Give protected money a purpose": "محفوظ رقم کو ایک مقصد دیں",
+  "Household owners create goals such as Emergency Fund or Travel, set optional targets, and edit a goal without rewriting its history.":
+    "گھرانے کے مالک ہنگامی فنڈ یا سفر جیسے اہداف بناتے، اختیاری ہدف مقرر کرتے اور تاریخ بدلے بغیر ہدف میں ترمیم کرتے ہیں۔",
+  "Owners use Add movement to record a contribution, withdrawal, allocation, or transfer.":
+    "مالک ’منتقلی شامل کریں‘ سے جمع، نکلوائی، مختص رقم یا منتقلی ریکارڈ کرتے ہیں۔",
+  "Transfers and monthly allocations move money internally; external contributions and withdrawals also affect calculated bank.":
+    "اہداف کے درمیان منتقلی اور ماہانہ تقسیم اندرونی حرکت ہے؛ بیرونی جمع اور نکلوائی حساب شدہ بینک کو بھی بدلتی ہے۔",
+  "Savings history": "بچت کی تاریخ",
+  "See every savings credit and debit": "بچت کی ہر جمع اور نکلوائی دیکھیں",
+  "The savings ledger explains how each goal balance changed, including the source, destination, movement type, amount, and date.":
+    "بچت لیجر دکھاتا ہے کہ ہر ہدف کا بیلنس کیسے بدلا، ساتھ ہی ذریعہ، منزل، قسم، رقم اور تاریخ بھی۔",
+  "Filter the ledger by one goal when you need its complete story.":
+    "کسی ایک ہدف کی مکمل تاریخ کے لیے لیجر کو اس ہدف کے مطابق فلٹر کریں۔",
+  "Transfers appear as both a debit from one goal and a credit to another without changing total bank cash.":
+    "منتقلی ایک ہدف سے نکلوائی اور دوسرے میں جمع کے طور پر نظر آتی ہے، مگر کل بینک رقم نہیں بدلتی۔",
+  "Reports and exports": "رپورٹس اور برآمدات",
+  "Understand progress across months": "مہینوں کے دوران پیش رفت سمجھیں",
+  "Reports compare income, household expenses, personal spending, net cash flow, and savings growth month by month.":
+    "رپورٹس ماہ بہ ماہ آمدنی، گھریلو اخراجات، ذاتی خرچ، خالص کیش فلو اور بچت میں اضافے کا موازنہ کرتی ہیں۔",
+  "Download CSV when you want a spreadsheet-friendly ledger.":
+    "اسپریڈشیٹ میں استعمال کے قابل لیجر کے لیے CSV ڈاؤن لوڈ کریں۔",
+  "Household owners can download the explicit full JSON backup for safekeeping.":
+    "گھرانے کے مالک محفوظ رکھنے کے لیے واضح مکمل JSON بیک اپ ڈاؤن لوڈ کر سکتے ہیں۔",
+  "Keep bills and savings from slipping": "بل اور بچت کو نظر انداز ہونے سے بچائیں",
+  "Due-date, overdue-bill, and savings-target reminders are collected here and can take you directly to the relevant action.":
+    "آخری تاریخ، واجب الادا بل اور بچت کے ہدف کی یاد دہانیاں یہاں جمع ہوتی ہیں اور متعلقہ کارروائی تک لے جاتی ہیں۔",
+  "Owners receive reminders for shared household finances.":
+    "مالک کو مشترکہ گھریلو مالی معاملات کی یاد دہانیاں ملتی ہیں۔",
+  "Use Mark all read after reviewing the latest items.":
+    "تازہ اطلاعات دیکھنے کے بعد ’سب کو پڑھا ہوا نشان زد کریں‘ استعمال کریں۔",
+  "Bank and household settings": "بینک اور گھرانے کی ترتیبات",
+  "Keep the plan aligned with real life": "منصوبے کو حقیقی صورتحال کے مطابق رکھیں",
+  "Settings holds the tracked bank account, household savings target, and the tools that define future monthly plans.":
+    "ترتیبات میں زیر نگرانی بینک اکاؤنٹ، گھریلو بچت کا ہدف اور آئندہ ماہانہ منصوبے بنانے والے ٹولز موجود ہیں۔",
+  "Reconcile by entering the actual balance shown by your bank; Ravani will show any variance.":
+    "بینک کا دکھایا ہوا حقیقی بیلنس درج کر کے تصدیق کریں؛ روانی کوئی بھی فرق دکھائے گی۔",
+  "A bank adjustment is recorded only when you explicitly choose to post one.":
+    "بینک ایڈجسٹمنٹ صرف تب ریکارڈ ہوتی ہے جب آپ واضح طور پر اسے شامل کرنے کا انتخاب کریں۔",
+  "Recurring plan and access": "مستقل منصوبہ اور رسائی",
+  "Manage what future months inherit": "آئندہ مہینوں میں آنے والا منصوبہ سنبھالیں",
+  "Edit recurring income sources and household bills here. Changes update the latest month and become the defaults for future months.":
+    "مستقل آمدنی کے ذرائع اور گھریلو بل یہاں تبدیل کریں۔ تبدیلیاں تازہ مہینے کو اپ ڈیٹ کر کے آئندہ مہینوں کا معیار بنتی ہیں۔",
+  "Bill settings include the expected amount, due day, and reminder lead time.":
+    "بل کی ترتیبات میں متوقع رقم، آخری دن اور یاد دہانی کا پیشگی وقت شامل ہے۔",
+  "Household owners can also invite members using their exact verified Google email.":
+    "گھرانے کے مالک ارکان کو ان کے عین تصدیق شدہ گوگل ای میل سے مدعو کر سکتے ہیں۔",
+  "Your account": "آپ کا اکاؤنٹ",
+  "Review membership and account controls": "رکنیت اور اکاؤنٹ کنٹرول دیکھیں",
+  "Account shows your signed-in identity, household role, privacy boundaries, and account-management actions.":
+    "اکاؤنٹ آپ کی سائن ان شناخت، گھریلو کردار، رازداری کی حدود اور اکاؤنٹ انتظام کی کارروائیاں دکھاتا ہے۔",
+  "Members manage only their own private spending while shared finances remain owner-controlled.":
+    "ارکان صرف اپنے ذاتی اخراجات سنبھالتے ہیں جبکہ مشترکہ مالیات مالک کے اختیار میں رہتی ہیں۔",
+  "Permanent actions such as leaving a household or deleting an account are kept here.":
+    "گھرانہ چھوڑنے یا اکاؤنٹ حذف کرنے جیسی مستقل کارروائیاں یہاں موجود ہیں۔",
+  "Language, theme, and help": "زبان، تھیم اور مدد",
+  "Make Ravani comfortable to use": "روانی کو اپنی سہولت کے مطابق بنائیں",
+  "Use the top bar to switch between English and Urdu, change light or dark mode, or open this detailed tour again.":
+    "اوپری بار سے انگریزی اور اردو بدلیں، روشن یا تاریک موڈ منتخب کریں یا یہ تفصیلی رہنمائی دوبارہ کھولیں۔",
+  "Your language preference is saved to your account for future visits.":
+    "آپ کی زبان کی ترجیح آئندہ استعمال کے لیے اکاؤنٹ میں محفوظ رہتی ہے۔",
+  "The question-mark button restarts this walkthrough whenever you need a refresher.":
+    "جب بھی دوبارہ رہنمائی چاہیے ہو سوالیہ نشان کا بٹن یہ دورہ شروع کرتا ہے۔",
+  "You’re ready": "آپ تیار ہیں",
+  "Follow the flow one transaction at a time": "ہر لین دین کے ساتھ مالی روانی واضح رکھیں",
+  "Start in This month, record money only when it actually moves, reserve savings with a purpose, and use Overview to check the result.":
+    "’یہ مہینہ‘ سے آغاز کریں، رقم صرف حقیقت میں منتقل ہونے پر ریکارڈ کریں، مقصد کے ساتھ بچت محفوظ کریں اور نتیجہ ’جائزہ‘ میں دیکھیں۔",
+  "You can return to any previous month to correct its complete financial flow.":
+    "آپ کسی بھی پچھلے مہینے میں واپس جا کر اس کی مکمل مالی روانی درست کر سکتے ہیں۔",
+  "Replay this tour anytime from the question-mark button in the top bar.":
+    "اوپری بار کے سوالیہ نشان سے یہ رہنمائی کسی بھی وقت دوبارہ چلائیں۔",
   "We’ll remember this choice every time you open Ravani. You can change it anytime from inside the app.":
     "جب بھی آپ روانی کھولیں گے ہم یہ انتخاب یاد رکھیں گے۔ آپ اسے ایپ کے اندر کسی بھی وقت تبدیل کر سکتے ہیں۔",
   "Your finances, in one calm place": "آپ کے مالی معاملات، ایک پُرسکون جگہ پر",

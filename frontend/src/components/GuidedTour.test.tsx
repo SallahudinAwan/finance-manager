@@ -1,7 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { GuidedTour } from "./GuidedTour";
+
+function CurrentPath() {
+  return <output aria-label="Current path">{useLocation().pathname}</output>;
+}
 
 describe("GuidedTour", () => {
   it("walks through steps and remembers when the user skips it", async () => {
@@ -22,13 +27,22 @@ describe("GuidedTour", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <GuidedTour open onClose={onClose} />
+        <MemoryRouter initialEntries={["/app/settings"]}>
+          <CurrentPath />
+          <GuidedTour open isOwner onClose={onClose} />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Your finances, in one calm place")).toBeVisible();
+    expect(screen.getByText("Your monthly money has a clear flow now")).toBeVisible();
+    expect(screen.getByText("Step 1 of 17")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("See the important numbers first")).toBeVisible();
+    expect(screen.getByText("Begin each visit with the big picture")).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText("Current path")).toHaveTextContent("/app"));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Read these four numbers together")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByText("Begin each visit with the big picture")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Skip guided tour" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());

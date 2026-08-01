@@ -175,7 +175,7 @@ export function MonthPage() {
         })}
         description="Track what was planned and record only what actually moved through your bank."
         actions={
-          <div className="inline-actions">
+          <div className="inline-actions" data-tour="month-actions">
             <label className="month-picker">
               <span className="sr-only">Choose month</span>
               <select
@@ -297,7 +297,7 @@ export function MonthPage() {
         </div>
       )}
 
-      <section className="month-summary">
+      <section className="month-summary" data-tour="month-summary">
         <div>
           <span>Household plan</span>
           <strong>{formatPkr(plannedTotal)}</strong>
@@ -327,7 +327,7 @@ export function MonthPage() {
         </div>
       </section>
 
-      <div className="workspace-grid">
+      <div className="workspace-grid" data-tour="month-workspace">
         <section className="panel">
           <div className="panel-heading">
             <div>
@@ -440,7 +440,7 @@ export function MonthPage() {
       </div>
 
       {session.is_owner && (
-        <section className="panel">
+        <section className="panel" data-tour="month-transactions">
           <div className="panel-heading">
             <div>
               <span className="panel-kicker">Actual bank movements</span>
@@ -514,7 +514,7 @@ export function MonthPage() {
         </section>
       )}
 
-      <section className="panel">
+      <section className="panel" data-tour="personal-expenses">
         <div className="panel-heading">
           <div>
             <span className="panel-kicker">Private by design</span>

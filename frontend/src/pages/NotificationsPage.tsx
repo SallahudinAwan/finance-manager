@@ -32,7 +32,7 @@ export function NotificationsPage() {
           ) : undefined
         }
       />
-      <section className="panel notification-panel">
+      <section className="panel notification-panel" data-tour="notifications">
         {query.data.results.length ? (
           <div className="notification-list">
             {query.data.results.map((item) => {

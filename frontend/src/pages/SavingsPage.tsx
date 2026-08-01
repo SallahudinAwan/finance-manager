@@ -75,7 +75,7 @@ export function SavingsPage() {
         description="Record external savings deposits, protect them with goals, and keep your calculated bank balance accurate."
         actions={
           session.is_owner ? (
-            <>
+            <div className="inline-actions" data-tour="savings-actions">
               <Modal
                 title="Move savings"
                 description="Contributions increase the calculated bank, withdrawals decrease it, and transfers stay bank-neutral."
@@ -114,7 +114,7 @@ export function SavingsPage() {
                   }}
                 />
               </Modal>
-            </>
+            </div>
           ) : undefined
         }
       />
@@ -137,7 +137,7 @@ export function SavingsPage() {
         )}
       </Modal>
 
-      <section className="savings-hero">
+      <section className="savings-hero" data-tour="savings-overview">
         <div>
           <span>Total reserved</span>
           <strong>{formatPkr(total)}</strong>
@@ -246,7 +246,7 @@ export function SavingsTransactionHistory({
   };
 
   return (
-    <section className="panel savings-ledger-panel">
+    <section className="panel savings-ledger-panel" data-tour="savings-ledger">
       <div className="panel-heading savings-ledger-heading">
         <div>
           <span className="panel-kicker">Savings ledger</span>
