@@ -15,7 +15,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { Session } from "../types";
 import { GuidedTour } from "./GuidedTour";
@@ -37,9 +37,12 @@ export function AppShell({ session }: { session: Session }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
   const [tourOpen, setTourOpen] = useState(!session.user.tour_completed);
+  const [tourNavigationOpen, setTourNavigationOpen] = useState(false);
   const location = useLocation();
 
-  useEffect(() => setMobileOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!tourOpen || !tourNavigationOpen) setMobileOpen(false);
+  }, [location.pathname, tourNavigationOpen, tourOpen]);
   useEffect(() => {
     if (tourOpen) setCollapsed(false);
   }, [tourOpen]);
@@ -47,6 +50,15 @@ export function AppShell({ session }: { session: Session }) {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
     localStorage.setItem("theme", dark ? "dark" : "light");
   }, [dark]);
+  const handleTourMobileNavigation = useCallback((open: boolean) => {
+    setTourNavigationOpen(open);
+    if (window.matchMedia("(max-width: 880px)").matches) setMobileOpen(open);
+  }, []);
+  const closeTour = useCallback(() => {
+    setTourOpen(false);
+    setTourNavigationOpen(false);
+    setMobileOpen(false);
+  }, []);
 
   return (
     <div className={`app-shell ${collapsed ? "collapsed" : ""}`}>
@@ -157,7 +169,8 @@ export function AppShell({ session }: { session: Session }) {
       <GuidedTour
         open={tourOpen}
         isOwner={session.is_owner}
-        onClose={() => setTourOpen(false)}
+        onClose={closeTour}
+        onMobileNavigationChange={handleTourMobileNavigation}
       />
     </div>
   );
