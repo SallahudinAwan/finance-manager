@@ -452,6 +452,9 @@ def test_new_month_allocates_fixed_savings_to_a_goal_without_changing_bank() -> 
         amount=Decimal("500000.00"),
     )
     goal = SavingsGoal.objects.create(household=household, name="Emergency")
+    first_month = generate_month(household, 2026, 7)
+    assert first_month.savings_target == Decimal("150000.00")
+    assert not household.rollover_allocations.exists()
     client = APIClient()
     client.force_authenticate(owner)
     bank_before = bank_calculated_balance(household.bank_account)
@@ -502,6 +505,39 @@ def test_new_month_allocates_fixed_savings_to_a_goal_without_changing_bank() -> 
     protected = client.delete(f"/api/v1/savings-movements/{movement.id}/")
     assert protected.status_code == 400
     assert savings_goal_balance(goal) == Decimal("150000.00")
+
+
+def test_first_month_does_not_create_a_fixed_savings_movement() -> None:
+    owner, household = create_household()
+    goal = SavingsGoal.objects.create(household=household, name="Emergency")
+    client = APIClient()
+    client.force_authenticate(owner)
+    bank_before = bank_calculated_balance(household.bank_account)
+
+    preview = client.get("/api/v1/months/rollover-preview/?year=2026&month=8")
+    created = client.post(
+        "/api/v1/months/generate/",
+        {
+            "year": 2026,
+            "month": 8,
+            "rollover": {
+                "bill_allocations": [],
+                "safe_to_spend": None,
+                "fixed_savings_goal": goal.id,
+            },
+        },
+        format="json",
+    )
+
+    period = household.periods.get(year=2026, month=8)
+    assert preview.status_code == 200
+    assert preview.data["fixed_savings_target"] == Decimal("0.00")
+    assert created.status_code == 201
+    assert period.savings_target == Decimal("150000.00")
+    assert savings_goal_balance(goal) == Decimal("0.00")
+    assert not household.rollover_allocations.exists()
+    assert not household.savings_movements.exists()
+    assert bank_calculated_balance(household.bank_account) == bank_before
 
 
 def test_safe_to_spend_can_carry_into_the_next_month_without_changing_bank() -> None:

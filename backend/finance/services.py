@@ -456,8 +456,15 @@ def rollover_preview(household: Household, year: int, month: int) -> dict[str, A
         month=month,
         is_deleted=False,
     ).first()
+    has_another_active_month = (
+        household.periods.filter(is_deleted=False)
+        .exclude(pk=destination.pk if destination else None)
+        .exists()
+    )
     fixed_savings_target = (
-        destination.savings_target if destination else household.monthly_savings_target
+        (destination.savings_target if destination else household.monthly_savings_target)
+        if has_another_active_month
+        else ZERO
     )
     if (
         destination
@@ -525,8 +532,12 @@ def apply_month_rollovers(
             raise RolloverValidationError("Choose an active savings goal in this household.")
         return goal
 
+    has_another_active_month = (
+        household.periods.filter(is_deleted=False).exclude(pk=destination.pk).exists()
+    )
     if (
         fixed_savings_goal
+        and has_another_active_month
         and destination.savings_target > ZERO
         and not destination.outgoing_rollover_allocations.filter(
             source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
