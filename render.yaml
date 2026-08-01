@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ravani
+    name: finance-manager
     runtime: docker
     plan: free
     healthCheckPath: /health/
