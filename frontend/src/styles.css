@@ -2045,6 +2045,169 @@ html[dir="rtl"] .payment-expectation-grid > div:last-child {
   font-size: 9.5px;
 }
 
+.savings-ledger-panel {
+  margin-top: 18px;
+}
+
+.savings-ledger-heading {
+  align-items: flex-end;
+}
+
+.savings-goal-filter {
+  display: flex;
+  min-width: 190px;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.savings-goal-filter select {
+  min-height: 36px;
+  padding: 0 32px 0 11px;
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+  background-color: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.savings-ledger-summary {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.savings-ledger-summary > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.savings-ledger-summary p {
+  display: flex;
+  margin: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.savings-ledger-summary p small,
+.ledger-count {
+  color: var(--faint);
+  font-size: 8.5px;
+}
+
+.savings-ledger-summary p strong {
+  font-size: 11px;
+}
+
+.ledger-summary-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 9px;
+}
+
+.ledger-summary-icon.credit {
+  color: var(--emerald);
+  background: var(--emerald-soft);
+}
+
+.ledger-summary-icon.debit {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.ledger-count {
+  margin-inline-start: auto;
+}
+
+.savings-ledger-table {
+  min-width: 760px;
+}
+
+.savings-ledger-table td:nth-child(2) strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text);
+}
+
+.status-chip.savings-kind {
+  color: var(--indigo);
+  background: var(--indigo-soft);
+}
+
+.status-chip.savings-kind.contribution,
+.status-chip.savings-kind.allocation {
+  color: var(--emerald);
+  background: var(--emerald-soft);
+}
+
+.status-chip.savings-kind.withdrawal {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.savings-ledger-value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.savings-ledger-value strong {
+  font-size: 10.5px;
+}
+
+.savings-ledger-value.credit strong {
+  color: var(--emerald);
+}
+
+.savings-ledger-value.debit strong {
+  color: var(--red);
+}
+
+.savings-ledger-value small,
+.savings-bank-impact {
+  color: var(--faint);
+  font-size: 8.5px;
+}
+
+.ledger-empty {
+  color: var(--faint);
+}
+
+.savings-movement-note,
+.savings-bank-impact {
+  display: block;
+  max-width: 230px;
+}
+
+.savings-movement-note {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.savings-bank-impact {
+  margin-top: 3px;
+}
+
+.savings-ledger-footnote {
+  margin: 12px 0 0;
+  color: var(--faint);
+  font-size: 8.5px;
+}
+
 .report-highlights {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -3123,6 +3286,10 @@ html[dir="rtl"] .payment-expectation-grid > div:last-child {
   .savings-hero { padding: 21px; }
   .savings-hero-icon { width: 55px; height: 55px; }
   .savings-hero strong { font-size: 24px; }
+  .savings-ledger-heading { align-items: stretch; }
+  .savings-goal-filter { width: 100%; }
+  .savings-ledger-summary { align-items: flex-start; flex-wrap: wrap; gap: 12px 20px; }
+  .ledger-count { width: 100%; margin-inline-start: 0; }
   .form-grid { grid-template-columns: 1fr; }
   .wizard-card { padding: 22px 17px; }
   .setup-entry,

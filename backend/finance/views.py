@@ -621,7 +621,7 @@ class SavingsGoalViewSet(viewsets.ModelViewSet):
 
 class SavingsMovementViewSet(viewsets.ModelViewSet):
     serializer_class = SavingsMovementSerializer
-    permission_classes = [IsHouseholdOwner]
+    permission_classes = [OwnerWriteMemberRead]
 
     def get_queryset(self):
         household = user_household(self.request.user)

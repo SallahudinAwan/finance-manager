@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowDownLeft,
   ArrowRightLeft,
+  ArrowUpRight,
+  History,
   Pencil,
   PiggyBank,
   Plus,
@@ -9,11 +12,17 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { api, formatPkr, money, patchJson, postJson } from "../api/client";
+import { api, appLocale, formatPkr, money, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
 import { SavingsMovementForm } from "../components/SavingsMovementForm";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
-import type { Month, Paginated, SavingsGoal, Session } from "../types";
+import type {
+  Month,
+  Paginated,
+  SavingsGoal,
+  SavingsMovement,
+  Session,
+} from "../types";
 
 export function SavingsPage() {
   const { session } = useOutletContext<{ session: Session }>();
@@ -25,6 +34,10 @@ export function SavingsPage() {
     queryKey: ["savings-goals"],
     queryFn: () => api<Paginated<SavingsGoal>>("/savings-goals/"),
   });
+  const movements = useQuery({
+    queryKey: ["savings-movements"],
+    queryFn: () => api<Paginated<SavingsMovement>>("/savings-movements/"),
+  });
   const month = useQuery({
     queryKey: ["month", "current"],
     queryFn: () => api<Month>("/months/current/"),
@@ -33,13 +46,23 @@ export function SavingsPage() {
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+      queryClient.invalidateQueries({ queryKey: ["savings-movements"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       queryClient.invalidateQueries({ queryKey: ["trends"] }),
     ]);
   };
 
-  if (goals.isLoading || month.isLoading) return <Skeleton height={540} />;
-  if (goals.isError || month.isError || !goals.data || !month.data) return <ErrorPanel />;
+  if (goals.isLoading || movements.isLoading || month.isLoading) return <Skeleton height={540} />;
+  if (
+    goals.isError ||
+    movements.isError ||
+    month.isError ||
+    !goals.data ||
+    !movements.data ||
+    !month.data
+  ) {
+    return <ErrorPanel />;
+  }
 
   const total = goals.data.results.reduce((sum, goal) => sum + money(goal.balance), 0);
   const activeGoalCount = goals.data.results.filter((goal) => goal.active).length;
@@ -177,7 +200,177 @@ export function SavingsPage() {
           description="Goals can represent emergency savings, gifts, a baby fund, travel, or anything important."
         />
       )}
+
+      <SavingsTransactionHistory
+        goals={goals.data.results}
+        movements={movements.data.results}
+        totalCount={movements.data.count}
+      />
     </>
+  );
+}
+
+export function SavingsTransactionHistory({
+  goals,
+  movements,
+  totalCount,
+}: {
+  goals: SavingsGoal[];
+  movements: SavingsMovement[];
+  totalCount: number;
+}) {
+  const [goalFilter, setGoalFilter] = useState("all");
+  const goalNames = new Map(goals.map((goal) => [goal.id, goal.name]));
+  const filtered = movements.filter(
+    (movement) =>
+      goalFilter === "all" ||
+      movement.source_goal === Number(goalFilter) ||
+      movement.destination_goal === Number(goalFilter),
+  );
+  const credited = filtered.reduce(
+    (total, movement) => total + (movement.destination_goal ? money(movement.amount) : 0),
+    0,
+  );
+  const debited = filtered.reduce(
+    (total, movement) => total + (movement.source_goal ? money(movement.amount) : 0),
+    0,
+  );
+
+  const movementTitle = (movement: SavingsMovement) => {
+    const source = movement.source_goal ? goalNames.get(movement.source_goal) : null;
+    const destination = movement.destination_goal
+      ? goalNames.get(movement.destination_goal)
+      : null;
+    if (source && destination) return `${source} → ${destination}`;
+    return destination ?? source ?? "Savings goal";
+  };
+
+  return (
+    <section className="panel savings-ledger-panel">
+      <div className="panel-heading savings-ledger-heading">
+        <div>
+          <span className="panel-kicker">Savings ledger</span>
+          <h2>Credits and debits</h2>
+        </div>
+        <label className="savings-goal-filter">
+          <span>Filter by goal</span>
+          <select value={goalFilter} onChange={(event) => setGoalFilter(event.target.value)}>
+            <option value="all">All savings goals</option>
+            {goals.map((goal) => (
+              <option key={goal.id} value={goal.id}>
+                {goal.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {filtered.length ? (
+        <>
+          <div className="savings-ledger-summary">
+            <div>
+              <span className="ledger-summary-icon credit">
+                <ArrowDownLeft size={17} />
+              </span>
+              <p>
+                <small>Total credited</small>
+                <strong className="positive-text">+{formatPkr(credited)}</strong>
+              </p>
+            </div>
+            <div>
+              <span className="ledger-summary-icon debit">
+                <ArrowUpRight size={17} />
+              </span>
+              <p>
+                <small>Total debited</small>
+                <strong className="negative-text">−{formatPkr(debited)}</strong>
+              </p>
+            </div>
+            <small className="ledger-count">
+              Showing {filtered.length} of {totalCount} recent movements
+            </small>
+          </div>
+          <div className="expense-table-wrap">
+            <table className="expense-table savings-ledger-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Movement</th>
+                  <th>Credit</th>
+                  <th>Debit</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((movement) => {
+                  const bankNeutral = ["transfer", "allocation"].includes(movement.kind);
+                  return (
+                    <tr key={movement.id}>
+                      <td>
+                        {new Date(`${movement.date}T00:00:00`).toLocaleDateString(appLocale(), {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td>
+                        <strong>{movementTitle(movement)}</strong>
+                        <span className={`status-chip savings-kind ${movement.kind}`}>
+                          {movement.kind === "allocation"
+                            ? "Internal allocation"
+                            : movement.kind.charAt(0).toUpperCase() + movement.kind.slice(1)}
+                        </span>
+                      </td>
+                      <td>
+                        {movement.destination_goal ? (
+                          <div className="savings-ledger-value credit">
+                            <strong>+{formatPkr(movement.amount)}</strong>
+                            <small>{goalNames.get(movement.destination_goal)}</small>
+                          </div>
+                        ) : (
+                          <span className="ledger-empty">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {movement.source_goal ? (
+                          <div className="savings-ledger-value debit">
+                            <strong>−{formatPkr(movement.amount)}</strong>
+                            <small>{goalNames.get(movement.source_goal)}</small>
+                          </div>
+                        ) : (
+                          <span className="ledger-empty">—</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="savings-movement-note">
+                          {movement.notes || "No notes"}
+                        </span>
+                        <small className="savings-bank-impact">
+                          {bankNeutral
+                            ? "Internal movement · bank-neutral"
+                            : movement.kind === "contribution"
+                              ? "Calculated bank increases"
+                              : "Calculated bank decreases"}
+                        </small>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="savings-ledger-footnote">
+            Opening balances are included in each goal balance but are not recorded as movements.
+          </p>
+        </>
+      ) : (
+        <EmptyState
+          icon={<History size={24} />}
+          title={goalFilter === "all" ? "No savings movements yet" : "No movements for this goal"}
+          description="Contributions, withdrawals, transfers, and monthly allocations will appear here."
+        />
+      )}
+    </section>
   );
 }
 export function GoalForm({

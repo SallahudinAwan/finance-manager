@@ -83,6 +83,36 @@ def test_member_cannot_record_shared_payment() -> None:
     assert household.ledger_entries.count() == 0
 
 
+def test_member_can_view_savings_movements_but_cannot_change_them() -> None:
+    owner, household = create_household()
+    member = create_member(household)
+    period = generate_month(household, 2026, 8)
+    goal = SavingsGoal.objects.create(household=household, name="Emergency")
+    movement = SavingsMovement.objects.create(
+        household=household,
+        period=period,
+        created_by=owner,
+        kind=SavingsMovement.Kind.CONTRIBUTION,
+        destination_goal=goal,
+        date=date(2026, 8, 3),
+        amount=Decimal("15000.00"),
+        notes="Family gift",
+    )
+    client = APIClient()
+    client.force_authenticate(member)
+
+    listed = client.get("/api/v1/savings-movements/")
+    changed = client.patch(
+        f"/api/v1/savings-movements/{movement.id}/",
+        {"amount": "16000.00"},
+        format="json",
+    )
+
+    assert listed.status_code == 200
+    assert [item["id"] for item in listed.data["results"]] == [movement.id]
+    assert changed.status_code == 403
+
+
 def test_owner_template_edits_update_only_the_latest_month_snapshot() -> None:
     owner, household = create_household()
     income = RecurringIncome.objects.create(
