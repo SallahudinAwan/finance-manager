@@ -38,7 +38,7 @@ describe("HouseholdPaymentSummary", () => {
 describe("AddMonthForm", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("asks where bill and safe-to-spend leftovers should go before creating the month", async () => {
+  it("asks where fixed savings and previous-month leftovers should go", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(
@@ -47,6 +47,7 @@ describe("AddMonthForm", () => {
             source_month: "2026-07",
             unpaid_expenses: [{ id: 7, name: "Rent", remaining_amount: "10000.00" }],
             safe_to_spend: "25000.00",
+            fixed_savings_target: "15000.00",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
@@ -90,7 +91,10 @@ describe("AddMonthForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByText("Unpaid household amounts")).toBeVisible();
 
-    fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Savings goal for fixed savings"), {
+      target: { value: "3" },
+    });
+    fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("What should happen to this amount?"), {
       target: { value: "savings" },
     });
@@ -105,7 +109,54 @@ describe("AddMonthForm", () => {
       rollover: {
         bill_allocations: [{ planned_expense: 7, destination_goal: 3 }],
         safe_to_spend: { action: "savings", destination_goal: 3 },
+        fixed_savings_goal: 3,
       },
     });
+  });
+
+  it("creates the first month without asking for a fixed-savings transfer", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            source_month: null,
+            unpaid_expenses: [],
+            safe_to_spend: "0.00",
+            fixed_savings_target: "0.00",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 8,
+            year: 2026,
+            month: 8,
+            label: "2026-08",
+            savings_target: "150000.00",
+            safe_to_spend_carryover: "0.00",
+            income_plans: [],
+            planned_expenses: [],
+          }),
+          { status: 201, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    const onCreated = vi.fn(async () => undefined);
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AddMonthForm goals={[]} onCreated={onCreated} />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText("Month"), { target: { value: "2026-08" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    expect(screen.queryByText("Fixed monthly savings")).not.toBeInTheDocument();
+    const request = fetchMock.mock.calls[1][1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toEqual({ year: 2026, month: 8 });
   });
 });

@@ -488,6 +488,7 @@ class SafeToSpendRolloverInputSerializer(serializers.Serializer):
 class MonthRolloverInputSerializer(serializers.Serializer):
     bill_allocations = BillRolloverInputSerializer(many=True, required=False, default=list)
     safe_to_spend = SafeToSpendRolloverInputSerializer(required=False, allow_null=True)
+    fixed_savings_goal = serializers.IntegerField(min_value=1, required=False, allow_null=True)
 
 
 class MonthGenerateInputSerializer(serializers.Serializer):
@@ -506,6 +507,7 @@ class RolloverPreviewSerializer(serializers.Serializer):
     source_month = serializers.CharField(allow_null=True)
     unpaid_expenses = RolloverExpensePreviewSerializer(many=True)
     safe_to_spend = MoneyField()
+    fixed_savings_target = MoneyField()
 
 
 class ReconciliationInputSerializer(serializers.Serializer):

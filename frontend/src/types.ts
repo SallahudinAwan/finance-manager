@@ -85,6 +85,7 @@ export interface RolloverPreview {
     remaining_amount: Money;
   }>;
   safe_to_spend: Money;
+  fixed_savings_target: Money;
 }
 
 export interface SavingsGoal {
@@ -94,6 +95,19 @@ export interface SavingsGoal {
   target_amount: Money | null;
   active: boolean;
   balance: Money;
+}
+
+export interface SavingsMovement {
+  id: number;
+  period: number | null;
+  kind: "contribution" | "withdrawal" | "transfer" | "allocation";
+  source_goal: number | null;
+  destination_goal: number | null;
+  date: string;
+  amount: Money;
+  notes: string;
+  rollover_allocation: number | null;
+  created_at: string;
 }
 
 export interface Dashboard {

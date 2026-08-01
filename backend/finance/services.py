@@ -229,10 +229,9 @@ def delete_month(period: MonthlyPeriod, actor: Any) -> dict[str, int]:
     counts = {
         "ledger_entries": period.ledger_entries.count(),
         "savings_movements": period.savings_movements.count(),
-        "rollover_allocations": (
-            period.incoming_rollover_allocations.count()
-            + period.outgoing_rollover_allocations.count()
-        ),
+        "rollover_allocations": household.rollover_allocations.filter(
+            Q(source_period=period) | Q(destination_period=period)
+        ).count(),
         "reconciliations": household.bank_account.reconciliations.filter(
             date__gte=month_start,
             date__lt=next_month_start,
@@ -452,6 +451,28 @@ def rollover_available_safe_to_spend(period: MonthlyPeriod) -> Decimal:
 
 
 def rollover_preview(household: Household, year: int, month: int) -> dict[str, Any]:
+    destination = household.periods.filter(
+        year=year,
+        month=month,
+        is_deleted=False,
+    ).first()
+    has_another_active_month = (
+        household.periods.filter(is_deleted=False)
+        .exclude(pk=destination.pk if destination else None)
+        .exists()
+    )
+    fixed_savings_target = (
+        (destination.savings_target if destination else household.monthly_savings_target)
+        if has_another_active_month
+        else ZERO
+    )
+    if (
+        destination
+        and destination.outgoing_rollover_allocations.filter(
+            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
+        ).exists()
+    ):
+        fixed_savings_target = ZERO
     previous_year, previous_month = _adjacent_month(year, month, -1)
     source = household.periods.filter(
         year=previous_year,
@@ -459,7 +480,12 @@ def rollover_preview(household: Household, year: int, month: int) -> dict[str, A
         is_deleted=False,
     ).first()
     if source is None:
-        return {"source_month": None, "unpaid_expenses": [], "safe_to_spend": ZERO}
+        return {
+            "source_month": None,
+            "unpaid_expenses": [],
+            "safe_to_spend": ZERO,
+            "fixed_savings_target": fixed_savings_target,
+        }
 
     completed_keys = set(source.outgoing_rollover_allocations.values_list("source_key", flat=True))
     unpaid_expenses = [
@@ -480,6 +506,7 @@ def rollover_preview(household: Household, year: int, month: int) -> dict[str, A
         "source_month": source.label,
         "unpaid_expenses": unpaid_expenses,
         "safe_to_spend": safe_to_spend,
+        "fixed_savings_target": fixed_savings_target,
     }
 
 
@@ -495,7 +522,53 @@ def apply_month_rollovers(
     *,
     bill_allocations: list[dict[str, int]],
     safe_to_spend: dict[str, Any] | None,
+    fixed_savings_goal: int | None,
 ) -> None:
+    active_goals = {goal.id: goal for goal in household.savings_goals.filter(active=True)}
+
+    def goal_for(goal_id: int) -> SavingsGoal:
+        goal = active_goals.get(goal_id)
+        if goal is None:
+            raise RolloverValidationError("Choose an active savings goal in this household.")
+        return goal
+
+    has_another_active_month = (
+        household.periods.filter(is_deleted=False).exclude(pk=destination.pk).exists()
+    )
+    if (
+        fixed_savings_goal
+        and has_another_active_month
+        and destination.savings_target > ZERO
+        and not destination.outgoing_rollover_allocations.filter(
+            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
+        ).exists()
+    ):
+        fixed_goal = goal_for(fixed_savings_goal)
+        fixed_allocation = RolloverAllocation(
+            household=household,
+            source_period=destination,
+            destination_period=destination,
+            destination_goal=fixed_goal,
+            created_by=actor,
+            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS,
+            source_key="fixed_savings",
+            action=RolloverAllocation.Action.SAVINGS,
+            amount=destination.savings_target,
+        )
+        fixed_allocation.full_clean()
+        fixed_allocation.save()
+        SavingsMovement.objects.create(
+            household=household,
+            period=destination,
+            created_by=actor,
+            rollover_allocation=fixed_allocation,
+            kind=SavingsMovement.Kind.ALLOCATION,
+            destination_goal=fixed_goal,
+            date=date(destination.year, destination.month, 1),
+            amount=fixed_allocation.amount,
+            notes=f"Fixed monthly savings allocated for {destination.label}",
+        )
+
     previous_year, previous_month = _adjacent_month(destination.year, destination.month, -1)
     source = household.periods.filter(
         year=previous_year,
@@ -506,14 +579,6 @@ def apply_month_rollovers(
         if bill_allocations or safe_to_spend:
             raise RolloverValidationError("The previous calendar month is not available.")
         return
-
-    active_goals = {goal.id: goal for goal in household.savings_goals.filter(active=True)}
-
-    def goal_for(goal_id: int) -> SavingsGoal:
-        goal = active_goals.get(goal_id)
-        if goal is None:
-            raise RolloverValidationError("Choose an active savings goal in this household.")
-        return goal
 
     seen_expenses: set[int] = set()
     for item in bill_allocations:
@@ -613,6 +678,8 @@ def refresh_month_rollovers(household: Household, from_period: MonthlyPeriod) ->
         for allocation in allocations:
             if allocation.source_kind == RolloverAllocation.SourceKind.HOUSEHOLD_REMAINDER:
                 amount = allocation.source_expense.remaining_amount
+            elif allocation.source_kind == RolloverAllocation.SourceKind.FIXED_SAVINGS:
+                amount = period.savings_target
             else:
                 amount = max(rollover_available_safe_to_spend(period), ZERO)
             if amount <= ZERO:

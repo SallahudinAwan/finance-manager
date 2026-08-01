@@ -100,6 +100,9 @@ class HealthDetailView(APIView):
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class SessionView(APIView):
     permission_classes = [IsAuthenticated]
+    # The frontend uses this inexpensive endpoint to decide whether the browser
+    # has a valid login. Throttling it makes a 429 look like a signed-out user.
+    throttle_classes = []
 
     @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request) -> Response:
@@ -383,6 +386,7 @@ class MonthViewSet(
                         request.user,
                         bill_allocations=rollover_data["bill_allocations"],
                         safe_to_spend=rollover_data.get("safe_to_spend"),
+                        fixed_savings_goal=rollover_data.get("fixed_savings_goal"),
                     )
         except RolloverValidationError as exc:
             return Response({"rollover": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -617,7 +621,7 @@ class SavingsGoalViewSet(viewsets.ModelViewSet):
 
 class SavingsMovementViewSet(viewsets.ModelViewSet):
     serializer_class = SavingsMovementSerializer
-    permission_classes = [IsHouseholdOwner]
+    permission_classes = [OwnerWriteMemberRead]
 
     def get_queryset(self):
         household = user_household(self.request.user)
