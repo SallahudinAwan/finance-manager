@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import { RavaniMark } from "../components/RavaniMark";
+import { RavaniLogo } from "../components/RavaniMark";
 
 const content = {
   privacy: {
@@ -68,10 +68,7 @@ export function LegalPage({ kind }: { kind: keyof typeof content }) {
     <div className="legal-page">
       <header className="landing-nav">
         <a className="landing-brand" href="/">
-          <span>
-            <RavaniMark size={19} />
-          </span>
-          Ravani
+          <RavaniLogo />
         </a>
         <a className="button secondary" href="/">
           <ArrowLeft size={16} /> Back

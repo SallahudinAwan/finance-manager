@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="96" viewBox="0 0 384 96" role="img" aria-labelledby="title desc">
+  <title id="title">Ravani</title>
+  <desc id="desc">Ravani Monthly Money Manager logo with Urdu wordmark</desc>
+  <defs>
+    <linearGradient id="mark" x1="10" y1="8" x2="80" y2="86" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7779F5"/>
+      <stop offset="1" stop-color="#4547B9"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(62 23) rotate(132) scale(39)">
+      <stop stop-color="#6EE7B7" stop-opacity=".38"/>
+      <stop offset="1" stop-color="#6EE7B7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="24" fill="url(#mark)"/>
+  <rect x="8" y="8" width="80" height="80" rx="24" fill="url(#glow)"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.6">
+    <path d="M68 36A24 24 0 0 0 27 28l-5 6"/>
+    <path d="M68 22v14H54"/>
+    <path d="M28 60a24 24 0 0 0 41 8l5-6"/>
+    <path d="M28 74V60h14"/>
+  </g>
+  <circle cx="48" cy="48" r="5" fill="#fff"/>
+  <text x="108" y="47" fill="#172351" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800" letter-spacing="-1.5">Ravani</text>
+  <text x="245" y="45" fill="#159878" font-family="Noto Nastaliq Urdu, Noto Sans Arabic, Tahoma, sans-serif" font-size="19" font-weight="700" direction="rtl">روانی</text>
+  <text x="110" y="68" fill="#68738B" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="2.1">MONTHLY MONEY MANAGER</text>
+</svg>

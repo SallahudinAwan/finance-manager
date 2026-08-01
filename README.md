@@ -1,5 +1,7 @@
 # Ravani
 
+![Ravani · Monthly Money Manager](frontend/public/ravani-logo.svg)
+
 A privacy-aware monthly money manager for PKR households in the Asia/Karachi time
 zone. It replaces a monthly spreadsheet with an auditable plan, actual transaction ledger,
 virtual savings envelopes, reconciliation, reports, reminders, and exports.

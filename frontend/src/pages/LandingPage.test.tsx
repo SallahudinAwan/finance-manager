@@ -6,7 +6,8 @@ describe("LandingPage", () => {
   it("presents the Ravani monthly money brand", () => {
     render(<LandingPage />);
 
-    expect(screen.getByRole("link", { name: "Ravani" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /Ravani/ })).toHaveAttribute("href", "/");
+    expect(screen.getByText("روانی")).toBeVisible();
     expect(screen.getByText("Har maah, har rupay ka hisaab")).toBeVisible();
     expect(
       screen.getByRole("heading", {

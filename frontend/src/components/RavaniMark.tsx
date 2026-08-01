@@ -19,3 +19,22 @@ export function RavaniMark({ size = 20 }: { size?: number }) {
     </svg>
   );
 }
+
+export function RavaniLogo({ className = "" }: { className?: string }) {
+  return (
+    <span className={`ravani-logo ${className}`.trim()}>
+      <span className="ravani-logo-mark">
+        <RavaniMark size={25} />
+      </span>
+      <span className="ravani-logo-copy">
+        <span className="ravani-logo-title">
+          <strong>Ravani</strong>
+          <span className="ravani-logo-urdu" lang="ur" dir="rtl">
+            روانی
+          </span>
+        </span>
+        <small>Monthly Money Manager</small>
+      </span>
+    </span>
+  );
+}

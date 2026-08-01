@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Languages } from "lucide-react";
 import { patchJson } from "../api/client";
-import { RavaniMark } from "../components/RavaniMark";
+import { RavaniLogo } from "../components/RavaniMark";
 import type { AppLanguage } from "../i18n";
 import type { Session } from "../types";
 
@@ -19,7 +19,7 @@ export function LanguageSetupPage({ session }: { session: Session }) {
     <main className="language-setup">
       <section className="language-card">
         <a className="landing-brand" href="/">
-          <span><RavaniMark size={19} /></span> Ravani
+          <RavaniLogo />
         </a>
         <div className="language-icon"><Languages size={28} /></div>
         <p className="language-kicker">Welcome, {session.user.name.split(" ")[0]}</p>

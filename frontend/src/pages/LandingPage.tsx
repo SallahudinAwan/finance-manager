@@ -9,7 +9,7 @@ import {
   Sparkles,
   WalletCards,
 } from "lucide-react";
-import { RavaniMark } from "../components/RavaniMark";
+import { RavaniLogo, RavaniMark } from "../components/RavaniMark";
 
 export function LandingPage() {
   const next = encodeURIComponent(window.location.pathname);
@@ -17,10 +17,7 @@ export function LandingPage() {
     <div className="landing">
       <header className="landing-nav">
         <a className="landing-brand" href="/">
-          <span>
-            <RavaniMark size={19} />
-          </span>
-          Ravani
+          <RavaniLogo />
         </a>
         <a
           className="button secondary"
