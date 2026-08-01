@@ -411,11 +411,101 @@ class SavingsGoal(TimestampedModel):
         ]
 
 
+class RolloverAllocation(TimestampedModel):
+    class SourceKind(models.TextChoices):
+        HOUSEHOLD_REMAINDER = "household_remainder", "Household bill remainder"
+        SAFE_TO_SPEND = "safe_to_spend", "Safe to spend"
+
+    class Action(models.TextChoices):
+        SAVINGS = "savings", "Move to savings"
+        CARRYOVER = "carryover", "Carry to next month"
+
+    household = models.ForeignKey(
+        Household,
+        on_delete=models.CASCADE,
+        related_name="rollover_allocations",
+    )
+    source_period = models.ForeignKey(
+        MonthlyPeriod,
+        on_delete=models.PROTECT,
+        related_name="outgoing_rollover_allocations",
+    )
+    destination_period = models.ForeignKey(
+        MonthlyPeriod,
+        on_delete=models.CASCADE,
+        related_name="incoming_rollover_allocations",
+    )
+    source_expense = models.ForeignKey(
+        PlannedExpense,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="savings_rollovers",
+    )
+    destination_goal = models.ForeignKey(
+        SavingsGoal,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="rollover_allocations",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="finance_rollover_allocations",
+    )
+    source_kind = models.CharField(max_length=24, choices=SourceKind.choices)
+    source_key = models.CharField(max_length=64)
+    action = models.CharField(max_length=16, choices=Action.choices)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source_period", "source_key"],
+                name="unique_period_rollover_source",
+            ),
+            models.CheckConstraint(
+                condition=Q(amount__gt=0),
+                name="rollover_allocation_positive_amount",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(action="savings", destination_goal__isnull=False)
+                    | Q(action="carryover", destination_goal__isnull=True)
+                ),
+                name="rollover_action_matches_goal",
+            ),
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        related_household_ids = {
+            self.source_period.household_id,
+            self.destination_period.household_id,
+        }
+        if self.source_expense_id:
+            related_household_ids.add(self.source_expense.period.household_id)
+        if self.destination_goal_id:
+            related_household_ids.add(self.destination_goal.household_id)
+        if related_household_ids != {self.household_id}:
+            raise ValidationError("Rollover records must stay inside one household.")
+        if self.source_kind == self.SourceKind.HOUSEHOLD_REMAINDER:
+            if not self.source_expense_id or self.action != self.Action.SAVINGS:
+                raise ValidationError("A bill remainder requires a source bill and savings goal.")
+        elif self.source_expense_id:
+            raise ValidationError("Safe-to-spend rollover cannot reference a household bill.")
+
+
 class SavingsMovement(TimestampedModel):
     class Kind(models.TextChoices):
         CONTRIBUTION = "contribution", "Contribution"
         WITHDRAWAL = "withdrawal", "Withdrawal"
         TRANSFER = "transfer", "Transfer"
+        ALLOCATION = "allocation", "Internal allocation"
 
     household = models.ForeignKey(
         Household, on_delete=models.CASCADE, related_name="savings_movements"
@@ -433,6 +523,13 @@ class SavingsMovement(TimestampedModel):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="savings_movements",
+    )
+    rollover_allocation = models.OneToOneField(
+        RolloverAllocation,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="savings_movement",
     )
     kind = models.CharField(max_length=16, choices=Kind.choices)
     source_goal = models.ForeignKey(
@@ -463,9 +560,15 @@ class SavingsMovement(TimestampedModel):
 
     def clean(self) -> None:
         super().clean()
-        if self.kind == self.Kind.CONTRIBUTION:
+        if self.kind in {self.Kind.CONTRIBUTION, self.Kind.ALLOCATION}:
             if not self.destination_goal_id or self.source_goal_id:
-                raise ValidationError("A contribution requires only a destination goal.")
+                raise ValidationError(
+                    "An incoming savings movement requires only a destination goal."
+                )
+            if self.kind == self.Kind.ALLOCATION and not self.rollover_allocation_id:
+                raise ValidationError("An internal allocation requires a rollover record.")
+            if self.kind == self.Kind.CONTRIBUTION and self.rollover_allocation_id:
+                raise ValidationError("An external contribution cannot reference a rollover.")
         elif self.kind == self.Kind.WITHDRAWAL:
             if not self.source_goal_id or self.destination_goal_id:
                 raise ValidationError("A withdrawal requires only a source goal.")

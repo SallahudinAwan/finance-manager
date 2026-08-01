@@ -5,13 +5,14 @@ import {
   CalendarClock,
   Copy,
   MailPlus,
+  Pencil,
   Plus,
   Settings2,
   Users,
 } from "lucide-react";
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { api, appLocale, formatPkr, postJson } from "../api/client";
+import { api, appLocale, formatPkr, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
 import { ErrorPanel, PageHeader, Skeleton } from "../components/ui";
 import type { Paginated, Session } from "../types";
@@ -47,7 +48,10 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const [reconcileOpen, setReconcileOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [templateType, setTemplateType] = useState<"income" | "expense" | null>(null);
+  const [templateEditor, setTemplateEditor] = useState<{
+    type: "income" | "expense";
+    template?: Template;
+  } | null>(null);
   const bank = useQuery({ queryKey: ["bank"], queryFn: () => api<Bank>("/bank/") });
   const incomes = useQuery({
     queryKey: ["income-templates"],
@@ -71,6 +75,9 @@ export function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["income-templates"] }),
       queryClient.invalidateQueries({ queryKey: ["expense-templates"] }),
       queryClient.invalidateQueries({ queryKey: ["invitations"] }),
+      queryClient.invalidateQueries({ queryKey: ["month"] }),
+      queryClient.invalidateQueries({ queryKey: ["months"] }),
+      queryClient.invalidateQueries({ queryKey: ["trends"] }),
     ]);
   };
 
@@ -143,12 +150,12 @@ export function SettingsPage() {
                 <h2>Recurring plan</h2>
               </div>
               <div className="inline-actions">
-                <button className="button secondary small" onClick={() => setTemplateType("income")}>
+                <button className="button secondary small" onClick={() => setTemplateEditor({ type: "income" })}>
                   <Plus size={15} /> Income
                 </button>
                 <button
                   className="button secondary small"
-                  onClick={() => setTemplateType("expense")}
+                  onClick={() => setTemplateEditor({ type: "expense" })}
                 >
                   <Plus size={15} /> Expense
                 </button>
@@ -167,6 +174,13 @@ export function SettingsPage() {
                       <small>Copied into each new month</small>
                     </div>
                     <b>{formatPkr(item.amount)}</b>
+                    <button
+                      className="icon-button"
+                      aria-label={`Edit ${item.name}`}
+                      onClick={() => setTemplateEditor({ type: "income", template: item })}
+                    >
+                      <Pencil size={15} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -182,6 +196,13 @@ export function SettingsPage() {
                       <small>Due day {item.due_day} · {item.reminder_lead_days} days notice</small>
                     </div>
                     <b>{formatPkr(item.expected_amount)}</b>
+                    <button
+                      className="icon-button"
+                      aria-label={`Edit ${item.name}`}
+                      onClick={() => setTemplateEditor({ type: "expense", template: item })}
+                    >
+                      <Pencil size={15} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -253,16 +274,31 @@ export function SettingsPage() {
       )}
 
       <Modal
-        title={templateType === "income" ? "Add recurring income" : "Add recurring expense"}
+        title={
+          templateEditor?.template
+            ? templateEditor.type === "income"
+              ? "Edit income source"
+              : "Edit household bill"
+            : templateEditor?.type === "income"
+              ? "Add recurring income"
+              : "Add recurring expense"
+        }
+        description={
+          templateEditor?.template
+            ? "Your edit updates the recurring plan and its matching item in the newest month. Earlier months stay unchanged."
+            : undefined
+        }
         trigger={<span />}
-        open={templateType !== null}
-        onOpenChange={(open) => !open && setTemplateType(null)}
+        open={templateEditor !== null}
+        onOpenChange={(open) => !open && setTemplateEditor(null)}
       >
-        {templateType && (
+        {templateEditor && (
           <TemplateForm
-            type={templateType}
+            key={`${templateEditor.type}-${templateEditor.template?.id ?? "new"}`}
+            type={templateEditor.type}
+            template={templateEditor.template}
             onSaved={async () => {
-              setTemplateType(null);
+              setTemplateEditor(null);
               await refresh();
             }}
           />
@@ -331,18 +367,23 @@ function InviteForm({ onSaved }: { onSaved: () => Promise<void> }) {
 
 function TemplateForm({
   type,
+  template,
   onSaved,
 }: {
   type: "income" | "expense";
+  template?: Template;
   onSaved: () => Promise<void>;
 }) {
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [dueDay, setDueDay] = useState("1");
-  const [lead, setLead] = useState("3");
+  const [name, setName] = useState(template?.name ?? "");
+  const [amount, setAmount] = useState(
+    String(type === "income" ? (template?.amount ?? "") : (template?.expected_amount ?? "")),
+  );
+  const [dueDay, setDueDay] = useState(String(template?.due_day ?? 1));
+  const [lead, setLead] = useState(String(template?.reminder_lead_days ?? 3));
   const mutation = useMutation({
-    mutationFn: () =>
-      postJson(type === "income" ? "/income-templates/" : "/expense-templates/", {
+    mutationFn: () => {
+      const path = type === "income" ? "/income-templates/" : "/expense-templates/";
+      const body = {
         name,
         ...(type === "income"
           ? { amount }
@@ -351,18 +392,23 @@ function TemplateForm({
               due_day: Number(dueDay),
               reminder_lead_days: Number(lead),
             }),
-        active: true,
-      }),
+        active: template?.active ?? true,
+      };
+      return template ? patchJson(`${path}${template.id}/`, body) : postJson(path, body);
+    },
     onSuccess: onSaved,
   });
   return (
     <form className="stack-form" onSubmit={(event) => { event.preventDefault(); mutation.mutate(); }}>
       <label>
-        Name
+        {type === "income" ? "Income source name" : "Household bill name"}
         <input required value={name} onChange={(event) => setName(event.target.value)} placeholder={type === "income" ? "Monthly salary" : "Rent"} />
+        <small className="field-help">
+          {type === "income" ? "For example: Salary, freelance, or pension." : "For example: Rent, electricity, or internet."}
+        </small>
       </label>
       <label>
-        {type === "income" ? "Planned amount" : "Expected amount"}
+        {type === "income" ? "Expected monthly income" : "Expected monthly bill amount"}
         <div className="money-input">
           <span>Rs</span>
           <input required type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} />
@@ -371,17 +417,23 @@ function TemplateForm({
       {type === "expense" && (
         <div className="form-grid">
           <label>
-            Due day
+            Due day of month
             <input type="number" min="1" max="31" value={dueDay} onChange={(event) => setDueDay(event.target.value)} />
+            <small className="field-help">The calendar day this bill is normally due.</small>
           </label>
           <label>
-            Remind before
+            Reminder lead time (days)
             <input type="number" min="0" max="31" value={lead} onChange={(event) => setLead(event.target.value)} />
+            <small className="field-help">How many days before the due date to remind you.</small>
           </label>
         </div>
       )}
       {mutation.isError && <p className="form-error">Please check the values.</p>}
-      <button className="button primary full" disabled={mutation.isPending}>Add to future months</button>
+      <button className="button primary full" disabled={mutation.isPending}>
+        {mutation.isPending
+          ? template ? "Updating…" : "Saving…"
+          : template ? "Update recurring plan" : "Add to future months"}
+      </button>
     </form>
   );
 }

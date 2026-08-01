@@ -221,6 +221,10 @@ const urduMessages: Record<string, string> = {
   "Income sources": "آمدنی کے ذرائع",
   "Copied into each new month": "ہر نئے مہینے میں نقل کیا جاتا ہے",
   "Household bills": "گھریلو بل",
+  "Edit income source": "آمدنی کے ذریعے میں ترمیم",
+  "Edit household bill": "گھریلو بل میں ترمیم",
+  "Your edit updates the recurring plan and its matching item in the newest month. Earlier months stay unchanged.":
+    "آپ کی ترمیم مستقل منصوبے اور تازہ ترین مہینے میں متعلقہ آئٹم کو اپ ڈیٹ کرے گی۔ پچھلے مہینے تبدیل نہیں ہوں گے۔",
   "Household access": "گھرانے تک رسائی",
   "Invitations": "دعوت نامے",
   "Invite": "دعوت دیں",
@@ -281,6 +285,19 @@ const urduMessages: Record<string, string> = {
   "At least one is required": "کم از کم ایک ضروری ہے",
   "Add": "شامل کریں",
   "Add only recurring planned costs": "صرف مستقل منصوبہ شدہ اخراجات شامل کریں",
+  "Income source name": "آمدنی کے ذریعے کا نام",
+  "What should we call this income?": "اس آمدنی کو کیا نام دیا جائے؟",
+  "Expected monthly income": "متوقع ماہانہ آمدنی",
+  "Enter the amount you normally receive.": "وہ رقم درج کریں جو آپ عموماً وصول کرتے ہیں۔",
+  "Remove income source": "آمدنی کا ذریعہ ہٹائیں",
+  "Household bill name": "گھریلو بل کا نام",
+  "What recurring bill is this?": "یہ کون سا مستقل بل ہے؟",
+  "Expected monthly bill amount": "متوقع ماہانہ بل کی رقم",
+  "How much do you normally expect to pay?": "آپ عموماً کتنی رقم ادا کرنے کی توقع رکھتے ہیں؟",
+  "Due day of month": "مہینے میں ادائیگی کا دن",
+  "Calendar day 1–31. Short months use their final day.":
+    "کیلنڈر کا دن 1 تا 31۔ چھوٹے مہینوں میں آخری دن استعمال ہوگا۔",
+  "Remove household bill": "گھریلو بل ہٹائیں",
   "Give savings a purpose": "بچت کو مقصد دیں",
   "These are virtual envelopes inside the same bank account.":
     "یہ اسی بینک اکاؤنٹ کے اندر مجازی بچت خانے ہیں۔",
@@ -288,6 +305,13 @@ const urduMessages: Record<string, string> = {
     "ابتدائی رقوم آپ کی بچت کی بنیاد طے کرتی ہیں؛ آئندہ جمع ہونے والی بچت بینک میں آنے والی نئی رقم ریکارڈ کرے گی۔",
   "Savings goals": "بچت کے اہداف",
   "Targets are optional": "اہداف اختیاری ہیں",
+  "Savings goal name": "بچت کے ہدف کا نام",
+  "What are you saving this money for?": "آپ یہ رقم کس مقصد کے لیے بچا رہے ہیں؟",
+  "Amount already saved": "پہلے سے محفوظ رقم",
+  "Only money already included in your bank balance.":
+    "صرف وہ رقم جو پہلے ہی آپ کے بینک بیلنس میں شامل ہے۔",
+  "Optional total amount you want to reach.": "اختیاری کل رقم جس تک آپ پہنچنا چاہتے ہیں۔",
+  "Remove savings goal": "بچت کا ہدف ہٹائیں",
   "Already saved": "پہلے سے محفوظ",
   "Goal target": "ہدف کی رقم",
   "Optional": "اختیاری",
@@ -353,6 +377,7 @@ const urduMessages: Record<string, string> = {
   "Allocate for this month": "اس مہینے کے لیے مختص کریں",
   "Already reserved": "پہلے سے محفوظ",
   "Add to future months": "آئندہ مہینوں میں شامل کریں",
+  "Update recurring plan": "مستقل منصوبہ اپ ڈیٹ کریں",
   "Create goal": "ہدف بنائیں",
   "New goal": "نیا ہدف",
   "Personal expense": "ذاتی خرچ",
@@ -369,6 +394,12 @@ const urduMessages: Record<string, string> = {
   "Add payment": "ادائیگی شامل کریں",
   "Due day": "آخری تاریخ کا دن",
   "Remind before": "پہلے یاد دہانی",
+  "For example: Salary, freelance, or pension.": "مثلاً تنخواہ، فری لانس یا پنشن۔",
+  "For example: Rent, electricity, or internet.": "مثلاً کرایہ، بجلی یا انٹرنیٹ۔",
+  "The calendar day this bill is normally due.": "کیلنڈر کا وہ دن جب یہ بل عموماً واجب الادا ہوتا ہے۔",
+  "Reminder lead time (days)": "یاد دہانی کا پیشگی وقت (دن)",
+  "How many days before the due date to remind you.":
+    "آخری تاریخ سے کتنے دن پہلے یاد دہانی چاہیے۔",
   "Owner managed": "مالک کے زیر انتظام",
   "Copy invitation link": "دعوت کا لنک نقل کریں",
   "Monthly salary": "ماہانہ تنخواہ",
@@ -403,6 +434,30 @@ const urduMessages: Record<string, string> = {
     "یہ نیا بینک لین دین بنائے بغیر منتخب مہینے کے لیے مجازی بچت مختص کرتا ہے۔",
   "Income, bills, due dates, and the savings target are copied from your recurring plan.":
     "آمدنی، بل، آخری تاریخیں اور بچت کا ہدف آپ کے مستقل منصوبے سے نقل ہوتے ہیں۔",
+  "We’ll check the previous month for money that still needs a destination.":
+    "ہم پچھلے مہینے کی اس رقم کو دیکھیں گے جس کے لیے ابھی منزل منتخب کرنا باقی ہے۔",
+  "Previous month closeout": "پچھلے مہینے کا اختتام",
+  "These are internal allocations. Your calculated bank balance will not change.":
+    "یہ اندرونی تقسیم ہے۔ آپ کا حساب شدہ بینک بیلنس تبدیل نہیں ہوگا۔",
+  "Unpaid household amounts": "غیر ادا شدہ گھریلو رقوم",
+  "Choose a savings goal for each amount that was planned but not paid.":
+    "ہر منصوبہ شدہ مگر غیر ادا شدہ رقم کے لیے بچت کا ہدف منتخب کریں۔",
+  "Choose savings goal": "بچت کا ہدف منتخب کریں",
+  "Safe-to-spend leftover": "خرچ کے لیے محفوظ بچی ہوئی رقم",
+  "What should happen to this amount?": "اس رقم کے ساتھ کیا کیا جائے؟",
+  "Choose an action": "اقدام منتخب کریں",
+  "Add to the new month’s safe to spend": "نئے مہینے کی خرچ کے لیے محفوظ رقم میں شامل کریں",
+  "Move to a savings goal": "بچت کے ہدف میں منتقل کریں",
+  "Savings goal": "بچت کا ہدف",
+  "Create or reactivate a savings goal before closing unpaid household amounts.":
+    "غیر ادا شدہ گھریلو رقوم تقسیم کرنے سے پہلے بچت کا ہدف بنائیں یا دوبارہ فعال کریں۔",
+  "Change month": "مہینہ تبدیل کریں",
+  "Could not create this month. Please review the rollover choices.":
+    "یہ مہینہ نہیں بنایا جا سکا۔ منتقلی کے انتخاب دوبارہ دیکھیں۔",
+  "Checking previous month…": "پچھلا مہینہ دیکھا جا رہا ہے…",
+  "Create month and apply choices": "مہینہ بنائیں اور انتخاب لاگو کریں",
+  "This amount from the previous month is included in this month’s safe to spend.":
+    "پچھلے مہینے کی یہ رقم اس مہینے کی خرچ کے لیے محفوظ رقم میں شامل ہے۔",
   "Members see only their own personal expense details. The owner can include all private entries only in an explicit full backup.":
     "ارکان صرف اپنے ذاتی اخراجات کی تفصیل دیکھتے ہیں۔ مالک تمام نجی اندراجات صرف واضح مکمل بیک اپ میں شامل کر سکتا ہے۔",
   "Owners must transfer ownership while another active member remains. Account deletion is permanent.":
@@ -425,6 +480,20 @@ function translate(message: string): string {
 
   const dueDay = message.match(/^Due day (\d+) · (\d+) days notice$/);
   if (dueDay) return `آخری تاریخ ${dueDay[1]} · ${dueDay[2]} دن پہلے اطلاع`;
+
+  const rolloverHeading = message.match(/^Decide where (.+) leftovers should go$/);
+  if (rolloverHeading) return `طے کریں کہ ${rolloverHeading[1]} کی بچی ہوئی رقم کہاں جائے`;
+
+  const unpaidLeft = message.match(/^(.+) left unpaid$/);
+  if (unpaidLeft) return `${unpaidLeft[1]} غیر ادا شدہ`;
+
+  const safeLeft = message.match(/^(.+) remained after planned bills, savings, and personal spending\.$/);
+  if (safeLeft) {
+    return `منصوبہ شدہ بلوں، بچت اور ذاتی اخراجات کے بعد ${safeLeft[1]} باقی رہے۔`;
+  }
+
+  const carriedForward = message.match(/^(.+) carried forward$/);
+  if (carriedForward) return `${carriedForward[1]} اگلے مہینے منتقل`;
 
   return message;
 }
