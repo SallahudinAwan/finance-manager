@@ -878,6 +878,7 @@ export interface components {
         MonthRolloverInput: {
             bill_allocations?: components["schemas"]["BillRolloverInput"][];
             safe_to_spend?: components["schemas"]["SafeToSpendRolloverInput"] | null;
+            fixed_savings_goal?: number | null;
         };
         MonthlyIncomePlan: {
             readonly id: number;

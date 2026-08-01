@@ -85,6 +85,7 @@ export interface RolloverPreview {
     remaining_amount: Money;
   }>;
   safe_to_spend: Money;
+  fixed_savings_target: Money;
 }
 
 export interface SavingsGoal {

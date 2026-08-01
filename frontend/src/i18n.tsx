@@ -437,9 +437,13 @@ const urduMessages: Record<string, string> = {
   "We’ll check the previous month for money that still needs a destination.":
     "ہم پچھلے مہینے کی اس رقم کو دیکھیں گے جس کے لیے ابھی منزل منتخب کرنا باقی ہے۔",
   "Previous month closeout": "پچھلے مہینے کا اختتام",
+  "New month allocations": "نئے مہینے کی تقسیم",
+  "Give every reserved amount a destination": "ہر محفوظ رقم کے لیے منزل منتخب کریں",
   "These are internal allocations. Your calculated bank balance will not change.":
     "یہ اندرونی تقسیم ہے۔ آپ کا حساب شدہ بینک بیلنس تبدیل نہیں ہوگا۔",
   "Unpaid household amounts": "غیر ادا شدہ گھریلو رقوم",
+  "Fixed monthly savings": "مقررہ ماہانہ بچت",
+  "Savings goal for fixed savings": "مقررہ بچت کا ہدف",
   "Choose a savings goal for each amount that was planned but not paid.":
     "ہر منصوبہ شدہ مگر غیر ادا شدہ رقم کے لیے بچت کا ہدف منتخب کریں۔",
   "Choose savings goal": "بچت کا ہدف منتخب کریں",
@@ -449,8 +453,8 @@ const urduMessages: Record<string, string> = {
   "Add to the new month’s safe to spend": "نئے مہینے کی خرچ کے لیے محفوظ رقم میں شامل کریں",
   "Move to a savings goal": "بچت کے ہدف میں منتقل کریں",
   "Savings goal": "بچت کا ہدف",
-  "Create or reactivate a savings goal before closing unpaid household amounts.":
-    "غیر ادا شدہ گھریلو رقوم تقسیم کرنے سے پہلے بچت کا ہدف بنائیں یا دوبارہ فعال کریں۔",
+  "Create or reactivate a savings goal before allocating fixed savings or unpaid household amounts.":
+    "مقررہ بچت یا غیر ادا شدہ گھریلو رقوم تقسیم کرنے سے پہلے بچت کا ہدف بنائیں یا دوبارہ فعال کریں۔",
   "Change month": "مہینہ تبدیل کریں",
   "Could not create this month. Please review the rollover choices.":
     "یہ مہینہ نہیں بنایا جا سکا۔ منتقلی کے انتخاب دوبارہ دیکھیں۔",
@@ -494,6 +498,13 @@ function translate(message: string): string {
 
   const carriedForward = message.match(/^(.+) carried forward$/);
   if (carriedForward) return `${carriedForward[1]} اگلے مہینے منتقل`;
+
+  const fixedSavings = message.match(
+    /^(.+) will be reserved for the new month\. Choose the savings goal that should receive it\.$/,
+  );
+  if (fixedSavings) {
+    return `${fixedSavings[1]} نئے مہینے کے لیے محفوظ ہوں گے۔ وصول کرنے والا بچت ہدف منتخب کریں۔`;
+  }
 
   return message;
 }

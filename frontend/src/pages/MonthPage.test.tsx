@@ -38,7 +38,7 @@ describe("HouseholdPaymentSummary", () => {
 describe("AddMonthForm", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("asks where bill and safe-to-spend leftovers should go before creating the month", async () => {
+  it("asks where fixed savings and previous-month leftovers should go", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(
@@ -47,6 +47,7 @@ describe("AddMonthForm", () => {
             source_month: "2026-07",
             unpaid_expenses: [{ id: 7, name: "Rent", remaining_amount: "10000.00" }],
             safe_to_spend: "25000.00",
+            fixed_savings_target: "15000.00",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
@@ -90,7 +91,10 @@ describe("AddMonthForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByText("Unpaid household amounts")).toBeVisible();
 
-    fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Savings goal for fixed savings"), {
+      target: { value: "3" },
+    });
+    fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("What should happen to this amount?"), {
       target: { value: "savings" },
     });
@@ -105,6 +109,7 @@ describe("AddMonthForm", () => {
       rollover: {
         bill_allocations: [{ planned_expense: 7, destination_goal: 3 }],
         safe_to_spend: { action: "savings", destination_goal: 3 },
+        fixed_savings_goal: 3,
       },
     });
   });

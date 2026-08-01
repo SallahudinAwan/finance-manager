@@ -1654,6 +1654,17 @@ html[dir="rtl"] .payment-expectation-grid > div:last-child {
   padding-top: 3px;
 }
 
+.fixed-savings-allocation {
+  padding: 12px 13px;
+  background: var(--emerald-soft);
+  border: 1px solid color-mix(in srgb, var(--emerald) 18%, var(--border));
+  border-radius: 11px;
+}
+
+.fixed-savings-allocation h3 {
+  color: var(--emerald);
+}
+
 .rollover-group h3 {
   margin: 0;
   font-size: 11px;

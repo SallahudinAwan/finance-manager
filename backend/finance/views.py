@@ -383,6 +383,7 @@ class MonthViewSet(
                         request.user,
                         bill_allocations=rollover_data["bill_allocations"],
                         safe_to_spend=rollover_data.get("safe_to_spend"),
+                        fixed_savings_goal=rollover_data.get("fixed_savings_goal"),
                     )
         except RolloverValidationError as exc:
             return Response({"rollover": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

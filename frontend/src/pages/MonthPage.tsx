@@ -721,6 +721,7 @@ export function AddMonthForm({
   const [billGoals, setBillGoals] = useState<Record<number, string>>({});
   const [safeAction, setSafeAction] = useState<"" | "carryover" | "savings">("");
   const [safeGoal, setSafeGoal] = useState("");
+  const [fixedSavingsGoal, setFixedSavingsGoal] = useState("");
   const activeGoals = goals.filter((goal) => goal.active);
   const createMutation = useMutation({
     mutationFn: (rollover: unknown | null) => {
@@ -739,7 +740,11 @@ export function AddMonthForm({
       return api<RolloverPreview>(`/months/rollover-preview/?year=${year}&month=${month}`);
     },
     onSuccess: (result) => {
-      if (!result.unpaid_expenses.length && money(result.safe_to_spend) <= 0) {
+      if (
+        !result.unpaid_expenses.length
+        && money(result.safe_to_spend) <= 0
+        && money(result.fixed_savings_target) <= 0
+      ) {
         createMutation.mutate(null);
         return;
       }
@@ -747,11 +752,13 @@ export function AddMonthForm({
       setBillGoals({});
       setSafeAction("");
       setSafeGoal("");
+      setFixedSavingsGoal("");
     },
   });
   const rolloverReady = Boolean(
     preview
       && preview.unpaid_expenses.every((expense) => billGoals[expense.id])
+      && (money(preview.fixed_savings_target) <= 0 || fixedSavingsGoal)
       && (money(preview.safe_to_spend) <= 0
         || (safeAction === "carryover")
         || (safeAction === "savings" && safeGoal)),
@@ -771,6 +778,8 @@ export function AddMonthForm({
               destination_goal: safeAction === "savings" ? Number(safeGoal) : null,
             }
           : null,
+      fixed_savings_goal:
+        money(preview.fixed_savings_target) > 0 ? Number(fixedSavingsGoal) : null,
     });
   };
 
@@ -804,10 +813,23 @@ export function AddMonthForm({
       ) : (
         <div className="rollover-step">
           <div className="rollover-heading">
-            <span>Previous month closeout</span>
-            <strong>Decide where {preview.source_month} leftovers should go</strong>
+            <span>New month allocations</span>
+            <strong>Give every reserved amount a destination</strong>
             <p>These are internal allocations. Your calculated bank balance will not change.</p>
           </div>
+          {money(preview.fixed_savings_target) > 0 && (
+            <div className="rollover-group fixed-savings-allocation">
+              <h3>Fixed monthly savings</h3>
+              <p>{formatPkr(preview.fixed_savings_target)} will be reserved for the new month. Choose the savings goal that should receive it.</p>
+              <label>
+                Savings goal for fixed savings
+                <select required value={fixedSavingsGoal} onChange={(event) => setFixedSavingsGoal(event.target.value)}>
+                  <option value="">Choose savings goal</option>
+                  {activeGoals.map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
           {preview.unpaid_expenses.length > 0 && (
             <div className="rollover-group">
               <h3>Unpaid household amounts</h3>
@@ -850,8 +872,8 @@ export function AddMonthForm({
               )}
             </div>
           )}
-          {!activeGoals.length && preview.unpaid_expenses.length > 0 && (
-            <p className="form-error">Create or reactivate a savings goal before closing unpaid household amounts.</p>
+          {!activeGoals.length && (preview.unpaid_expenses.length > 0 || money(preview.fixed_savings_target) > 0) && (
+            <p className="form-error">Create or reactivate a savings goal before allocating fixed savings or unpaid household amounts.</p>
           )}
           <button type="button" className="button secondary small rollover-back" onClick={() => setPreview(null)}>
             <ArrowLeft size={15} /> Change month

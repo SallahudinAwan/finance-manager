@@ -415,6 +415,7 @@ class RolloverAllocation(TimestampedModel):
     class SourceKind(models.TextChoices):
         HOUSEHOLD_REMAINDER = "household_remainder", "Household bill remainder"
         SAFE_TO_SPEND = "safe_to_spend", "Safe to spend"
+        FIXED_SAVINGS = "fixed_savings", "Fixed monthly savings"
 
     class Action(models.TextChoices):
         SAVINGS = "savings", "Move to savings"
@@ -496,6 +497,15 @@ class RolloverAllocation(TimestampedModel):
         if self.source_kind == self.SourceKind.HOUSEHOLD_REMAINDER:
             if not self.source_expense_id or self.action != self.Action.SAVINGS:
                 raise ValidationError("A bill remainder requires a source bill and savings goal.")
+        elif self.source_kind == self.SourceKind.FIXED_SAVINGS:
+            if (
+                self.source_expense_id
+                or self.action != self.Action.SAVINGS
+                or self.source_period_id != self.destination_period_id
+            ):
+                raise ValidationError(
+                    "Fixed savings must be allocated inside the month being created."
+                )
         elif self.source_expense_id:
             raise ValidationError("Safe-to-spend rollover cannot reference a household bill.")
 
