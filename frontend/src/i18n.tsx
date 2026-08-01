@@ -29,7 +29,7 @@ const urduMessages: Record<string, string> = {
   "Urdu": "اردو",
   "Language": "زبان",
   "Change language": "زبان تبدیل کریں",
-  "Your financial home": "آپ کا مالی مرکز",
+  "Your month, in one clear flow": "آپ کا مہینہ، ایک واضح روانی میں",
   "Loading this month’s plan…": "اس مہینے کا منصوبہ لوڈ ہو رہا ہے…",
   "Overview": "جائزہ",
   "No active month yet": "ابھی کوئی فعال مہینہ نہیں",
@@ -364,7 +364,9 @@ const urduMessages: Record<string, string> = {
   "Update goal": "ہدف اپ ڈیٹ کریں",
   "Start guided tour": "رہنمائی کا دورہ شروع کریں",
   "Skip guided tour": "رہنمائی کا دورہ چھوڑیں",
-  "Welcome to Finance Manager": "فنانس مینیجر میں خوش آمدید",
+  "Welcome to Ravani": "روانی میں خوش آمدید",
+  "We’ll remember this choice every time you open Ravani. You can change it anytime from inside the app.":
+    "جب بھی آپ روانی کھولیں گے ہم یہ انتخاب یاد رکھیں گے۔ آپ اسے ایپ کے اندر کسی بھی وقت تبدیل کر سکتے ہیں۔",
   "Your finances, in one calm place": "آپ کے مالی معاملات، ایک پُرسکون جگہ پر",
   "This short tour shows where to track your month, protect savings, and understand your real financial position.":
     "یہ مختصر رہنمائی آپ کو ماہانہ حساب، بچت کی حفاظت اور حقیقی مالی صورتحال سمجھنے کا طریقہ دکھاتی ہے۔",

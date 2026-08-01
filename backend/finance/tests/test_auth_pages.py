@@ -21,7 +21,7 @@ def test_logout_page_uses_branded_confirmation_template() -> None:
     response = client.get("/accounts/logout/")
 
     assert response.status_code == 200
-    assert b"Sign out of Finance Manager?" in response.content
+    assert b"Sign out of Ravani?" in response.content
     assert b"Sign out securely" in response.content
     assert owner.email.encode() in response.content
     assert b"Account Connections" not in response.content
@@ -32,9 +32,9 @@ def test_google_login_confirmation_uses_branded_template() -> None:
     response = Client().get("/accounts/google/login/")
 
     assert response.status_code == 200
-    assert b"Welcome to Finance Manager" in response.content
+    assert b"Welcome to Ravani" in response.content
     assert b"Continue securely with Google" in response.content
-    assert b"Finance Manager never receives or stores your Google password." in response.content
+    assert b"Ravani never receives or stores your Google password." in response.content
     assert b"Sign In Via Google" not in response.content
 
 

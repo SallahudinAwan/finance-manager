@@ -31,7 +31,7 @@ const steps: TourStep[] = [
   {
     selector: '[data-tour="brand"]',
     icon: <Sparkles size={22} />,
-    eyebrow: "Welcome to Finance Manager",
+    eyebrow: "Welcome to Ravani",
     title: "Your finances, in one calm place",
     description:
       "This short tour shows where to track your month, protect savings, and understand your real financial position.",

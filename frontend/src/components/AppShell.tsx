@@ -3,7 +3,6 @@ import {
   ChartNoAxesCombined,
   ChevronLeft,
   ChevronRight,
-  Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -21,6 +20,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { Session } from "../types";
 import { GuidedTour } from "./GuidedTour";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { RavaniLogo } from "./RavaniMark";
 
 const nav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
@@ -49,13 +49,7 @@ export function AppShell({ session }: { session: Session }) {
     <div className={`app-shell ${collapsed ? "collapsed" : ""}`}>
       <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
         <div className="brand" data-tour="brand">
-          <span className="brand-mark">
-            <Landmark size={20} />
-          </span>
-          <span className="brand-copy">
-            <strong>Finance Manager</strong>
-            <small>{session.household?.name}</small>
-          </span>
+          <RavaniLogo />
           <button
             className="mobile-close"
             onClick={() => setMobileOpen(false)}

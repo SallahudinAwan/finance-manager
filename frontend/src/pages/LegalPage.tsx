@@ -1,9 +1,10 @@
-import { ArrowLeft, Landmark } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { RavaniLogo } from "../components/RavaniMark";
 
 const content = {
   privacy: {
     title: "Privacy policy",
-    intro: "Finance Manager stores only the information needed to run your household workspace.",
+    intro: "Ravani stores only the information needed to run your household workspace.",
     sections: [
       [
         "What we collect",
@@ -25,7 +26,7 @@ const content = {
   },
   terms: {
     title: "Terms of use",
-    intro: "Finance Manager is a planning and record-keeping tool, not financial advice.",
+    intro: "Ravani is a planning and record-keeping tool, not financial advice.",
     sections: [
       [
         "Your records",
@@ -55,7 +56,7 @@ const content = {
       ],
       [
         "Before deleting",
-        "Download the appropriate CSV or JSON export first. Finance Manager v1 does not include backup restoration.",
+        "Download the appropriate CSV or JSON export first. Ravani v1 does not include backup restoration.",
       ],
     ],
   },
@@ -67,17 +68,14 @@ export function LegalPage({ kind }: { kind: keyof typeof content }) {
     <div className="legal-page">
       <header className="landing-nav">
         <a className="landing-brand" href="/">
-          <span>
-            <Landmark size={19} />
-          </span>
-          Finance Manager
+          <RavaniLogo />
         </a>
         <a className="button secondary" href="/">
           <ArrowLeft size={16} /> Back
         </a>
       </header>
       <main>
-        <span className="eyebrow">Finance Manager</span>
+        <span className="eyebrow">Ravani · Monthly Money Manager</span>
         <h1>{page.title}</h1>
         <p className="legal-intro">{page.intro}</p>
         {page.sections.map(([title, copy]) => (

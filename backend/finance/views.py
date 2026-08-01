@@ -762,7 +762,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
         if settings.EMAIL_ENABLED:
             invite_url = self.request.build_absolute_uri(f"/invite/{invitation.token}")
             send_mail(
-                "You are invited to Finance Manager",
+                "You are invited to Ravani",
                 f"Join {invitation.household.name}: {invite_url}",
                 settings.DEFAULT_FROM_EMAIL,
                 [invitation.email],
@@ -844,7 +844,7 @@ class LedgerCsvExportView(APIView):
                 entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
             )
         response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="finance-manager-ledger.csv"'
+        response["Content-Disposition"] = 'attachment; filename="ravani-ledger.csv"'
         writer = csv.writer(response)
         writer.writerow(
             [
@@ -943,5 +943,5 @@ class BackupExportView(APIView):
             )
             audit_export(household, request.user, "full_json")
         response = JsonResponse(payload, encoder=DjangoJSONEncoder)
-        response["Content-Disposition"] = 'attachment; filename="finance-manager-backup.json"'
+        response["Content-Disposition"] = 'attachment; filename="ravani-backup.json"'
         return response

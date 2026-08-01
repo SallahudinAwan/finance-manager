@@ -26,7 +26,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: DEFAULT_FROM_EMAIL
-        value: Finance Manager <onboarding@resend.dev>
+        value: Ravani <onboarding@resend.dev>
       - key: EMAIL_ENABLED
         value: "false"
 
@@ -52,6 +52,6 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: DEFAULT_FROM_EMAIL
-        value: Finance Manager <onboarding@resend.dev>
+        value: Ravani <onboarding@resend.dev>
       - key: EMAIL_ENABLED
         value: "false"

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Languages, Landmark } from "lucide-react";
+import { Check, Languages } from "lucide-react";
 import { patchJson } from "../api/client";
+import { RavaniLogo } from "../components/RavaniMark";
 import type { AppLanguage } from "../i18n";
 import type { Session } from "../types";
 
@@ -18,7 +19,7 @@ export function LanguageSetupPage({ session }: { session: Session }) {
     <main className="language-setup">
       <section className="language-card">
         <a className="landing-brand" href="/">
-          <span><Landmark size={19} /></span> Finance Manager
+          <RavaniLogo />
         </a>
         <div className="language-icon"><Languages size={28} /></div>
         <p className="language-kicker">Welcome, {session.user.name.split(" ")[0]}</p>
@@ -27,7 +28,7 @@ export function LanguageSetupPage({ session }: { session: Session }) {
           اپنی پسندیدہ زبان منتخب کریں
         </p>
         <p className="language-copy">
-          We’ll remember this choice every time you open Finance Manager. You can change it
+          We’ll remember this choice every time you open Ravani. You can change it
           anytime from inside the app.
         </p>
         <div className="language-options">
