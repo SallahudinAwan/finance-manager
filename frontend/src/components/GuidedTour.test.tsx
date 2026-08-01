@@ -21,6 +21,7 @@ describe("GuidedTour", () => {
       ),
     );
     const onClose = vi.fn();
+    const onMobileNavigationChange = vi.fn();
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -29,7 +30,12 @@ describe("GuidedTour", () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={["/app/settings"]}>
           <CurrentPath />
-          <GuidedTour open isOwner onClose={onClose} />
+          <GuidedTour
+            open
+            isOwner
+            onClose={onClose}
+            onMobileNavigationChange={onMobileNavigationChange}
+          />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -39,8 +45,10 @@ describe("GuidedTour", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("Begin each visit with the big picture")).toBeVisible();
     await waitFor(() => expect(screen.getByLabelText("Current path")).toHaveTextContent("/app"));
+    await waitFor(() => expect(onMobileNavigationChange).toHaveBeenLastCalledWith(true));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("Read these four numbers together")).toBeVisible();
+    await waitFor(() => expect(onMobileNavigationChange).toHaveBeenLastCalledWith(false));
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByText("Begin each visit with the big picture")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Skip guided tour" }));
@@ -77,5 +85,54 @@ describe("GuidedTour", () => {
       fireEvent.click(screen.getByRole("button", { name: "Next" }));
     }
     expect(screen.getByText("See how your reserved money is distributed")).toBeVisible();
+  });
+
+  it("scrolls mobile content targets into view and renders their spotlight", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/app"]}>
+          <div data-tour="overview" />
+          <section data-tour="dashboard-summary">Summary cards</section>
+          <GuidedTour open isOwner onClose={vi.fn()} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const summary = screen.getByText("Summary cards");
+    const scrollIntoView = vi.fn();
+    summary.scrollIntoView = scrollIntoView;
+    summary.getBoundingClientRect = () => ({
+      x: 14,
+      y: 80,
+      top: 80,
+      right: 374,
+      bottom: 240,
+      left: 14,
+      width: 360,
+      height: 160,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({
+      block: "start",
+      inline: "nearest",
+    }));
+    await waitFor(() => expect(document.querySelector(".tour-spotlight")).toBeInTheDocument());
+    vi.unstubAllGlobals();
   });
 });

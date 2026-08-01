@@ -289,14 +289,22 @@ const allSteps: TourStep[] = [
   },
 ];
 
+const mobileNavigationSelectors = new Set([
+  '[data-tour="overview"]',
+  '[data-tour="month"]',
+  '[data-tour="account"]',
+]);
+
 export function GuidedTour({
   open,
   onClose,
   isOwner = false,
+  onMobileNavigationChange,
 }: {
   open: boolean;
   onClose: () => void;
   isOwner?: boolean;
+  onMobileNavigationChange?: (open: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -345,6 +353,14 @@ export function GuidedTour({
   }, [location.pathname, navigate, open, step.path]);
 
   useEffect(() => {
+    const showNavigation = Boolean(
+      open && step.selector && mobileNavigationSelectors.has(step.selector),
+    );
+    onMobileNavigationChange?.(showNavigation);
+    return () => onMobileNavigationChange?.(false);
+  }, [onMobileNavigationChange, open, step.selector]);
+
+  useEffect(() => {
     if (!open) return;
     cardRef.current?.focus();
   }, [open, stepIndex]);
@@ -358,6 +374,7 @@ export function GuidedTour({
 
     let attempts = 0;
     let attemptedScroll = false;
+    let positionedForMobile = false;
     let retryTimer: number | undefined;
     let scrollFrame: number | undefined;
     const updateSpotlight = () => {
@@ -372,6 +389,8 @@ export function GuidedTour({
       }
 
       let rect = target.getBoundingClientRect();
+      const isMobile = window.matchMedia("(max-width: 880px)").matches;
+      const isMobileNavigation = mobileNavigationSelectors.has(step.selector!);
       const outsideViewport =
         rect.right <= 0 ||
         rect.left >= window.innerWidth ||
@@ -379,11 +398,30 @@ export function GuidedTour({
         rect.top >= window.innerHeight;
       if (
         outsideViewport &&
+        !isMobileNavigation &&
         !attemptedScroll &&
         typeof target.scrollIntoView === "function"
       ) {
         attemptedScroll = true;
         target.scrollIntoView({ block: "center", inline: "nearest" });
+        scrollFrame = window.requestAnimationFrame(updateSpotlight);
+        return;
+      }
+
+      if (outsideViewport && isMobileNavigation && attempts < 12) {
+        attempts += 1;
+        retryTimer = window.setTimeout(updateSpotlight, 50);
+        return;
+      }
+
+      if (
+        isMobile &&
+        !isMobileNavigation &&
+        !positionedForMobile &&
+        typeof target.scrollIntoView === "function"
+      ) {
+        positionedForMobile = true;
+        target.scrollIntoView({ block: "start", inline: "nearest" });
         scrollFrame = window.requestAnimationFrame(updateSpotlight);
         return;
       }
@@ -398,15 +436,32 @@ export function GuidedTour({
 
       rect = target.getBoundingClientRect();
       const padding = 8;
+      const placeCardAtTop = isMobile
+        ? rect.top > window.innerHeight * 0.5
+        : rect.top + rect.height / 2 > window.innerHeight * 0.58;
+      const cardSpace = isMobile
+        ? Math.min(cardRef.current?.getBoundingClientRect().height ?? 340, window.innerHeight * 0.48) + 28
+        : 0;
+      const visibleTop = isMobile && placeCardAtTop ? cardSpace : 6;
+      const visibleBottom =
+        isMobile && !placeCardAtTop
+          ? window.innerHeight - cardSpace
+          : window.innerHeight - 6;
       const left = Math.max(rect.left - padding, 6);
-      const top = Math.max(rect.top - padding, 6);
+      const top = Math.max(rect.top - padding, visibleTop);
+      const bottom = Math.min(rect.bottom + padding, visibleBottom);
+      if (bottom <= top) {
+        setSpotlight(null);
+        setCardAtTop(placeCardAtTop);
+        return;
+      }
       setSpotlight({
         top,
         left,
         width: Math.min(rect.width + padding * 2, window.innerWidth - left - 6),
-        height: Math.min(rect.height + padding * 2, window.innerHeight - top - 6),
+        height: bottom - top,
       });
-      setCardAtTop(rect.top + rect.height / 2 > window.innerHeight * 0.58);
+      setCardAtTop(placeCardAtTop);
     };
 
     updateSpotlight();
