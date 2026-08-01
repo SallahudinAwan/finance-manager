@@ -17,6 +17,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -45,7 +46,9 @@ from .serializers import (
     InvitationSerializer,
     LedgerEntrySerializer,
     MembershipSerializer,
+    MonthGenerateInputSerializer,
     MonthlyPeriodSerializer,
+    MonthRolloverInputSerializer,
     NotificationSerializer,
     OnboardingSerializer,
     OwnershipTransferSerializer,
@@ -55,12 +58,16 @@ from .serializers import (
     ReconciliationInputSerializer,
     RecurringExpenseSerializer,
     RecurringIncomeSerializer,
+    RolloverAllocationSerializer,
+    RolloverPreviewSerializer,
     SavingsGoalSerializer,
     SavingsMovementSerializer,
     UserPreferenceSerializer,
     UserSerializer,
 )
 from .services import (
+    RolloverValidationError,
+    apply_month_rollovers,
     audit_export,
     bank_calculated_balance,
     current_period,
@@ -71,6 +78,8 @@ from .services import (
     period_summary,
     reconcile_bank,
     refresh_expense_carryovers,
+    refresh_month_rollovers,
+    rollover_preview,
     sync_recurring_expense_to_latest_month,
     sync_recurring_income_to_latest_month,
     trends_data,
@@ -340,6 +349,10 @@ class MonthViewSet(
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(self.get_serializer(period).data)
 
+    @extend_schema(
+        request=MonthGenerateInputSerializer,
+        responses={201: MonthlyPeriodSerializer},
+    )
     @action(detail=False, methods=["post"], permission_classes=[IsHouseholdOwner])
     def generate(self, request) -> Response:
         year = int(request.data.get("year", date.today().year))
@@ -349,13 +362,54 @@ class MonthViewSet(
                 {"detail": "Enter a valid year and month."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        period = generate_month(
-            user_household(request.user),
-            year,
-            month,
-            restore_deleted=True,
-        )
+        rollover_data = None
+        if "rollover" in request.data:
+            rollover_serializer = MonthRolloverInputSerializer(data=request.data["rollover"])
+            rollover_serializer.is_valid(raise_exception=True)
+            rollover_data = rollover_serializer.validated_data
+        try:
+            with transaction.atomic():
+                household = user_household(request.user)
+                period = generate_month(
+                    household,
+                    year,
+                    month,
+                    restore_deleted=True,
+                )
+                if rollover_data is not None:
+                    apply_month_rollovers(
+                        household,
+                        period,
+                        request.user,
+                        bill_allocations=rollover_data["bill_allocations"],
+                        safe_to_spend=rollover_data.get("safe_to_spend"),
+                    )
+        except RolloverValidationError as exc:
+            return Response({"rollover": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(self.get_serializer(period).data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="rollover-preview",
+        permission_classes=[IsHouseholdOwner],
+    )
+    @extend_schema(responses={200: RolloverPreviewSerializer})
+    def rollover_preview(self, request) -> Response:
+        try:
+            year = int(request.query_params.get("year", ""))
+            month = int(request.query_params.get("month", ""))
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Enter a valid year and month."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not 2000 <= year <= 2100 or not 1 <= month <= 12:
+            return Response(
+                {"detail": "Enter a valid year and month."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(rollover_preview(user_household(request.user), year, month))
 
     @action(detail=True, methods=["get"])
     def summary(self, request, pk=None) -> Response:
@@ -463,6 +517,7 @@ class IncomePlanViewSet(
             description=planned.name,
             notes=serializer.validated_data.get("notes", ""),
         )
+        refresh_month_rollovers(planned.period.household, planned.period)
         return Response(LedgerEntrySerializer(entry).data, status=status.HTTP_201_CREATED)
 
 
@@ -487,11 +542,15 @@ class LedgerEntryViewSet(viewsets.ModelViewSet):
         )
         if entry.entry_type == LedgerEntry.EntryType.HOUSEHOLD_EXPENSE:
             refresh_expense_carryovers(entry.household, entry.period)
+        else:
+            refresh_month_rollovers(entry.household, entry.period)
 
     def perform_update(self, serializer) -> None:
         entry = serializer.save()
         if entry.entry_type == LedgerEntry.EntryType.HOUSEHOLD_EXPENSE:
             refresh_expense_carryovers(entry.household, entry.period)
+        else:
+            refresh_month_rollovers(entry.household, entry.period)
 
     def perform_destroy(self, instance) -> None:
         household = instance.household
@@ -500,6 +559,8 @@ class LedgerEntryViewSet(viewsets.ModelViewSet):
         instance.delete()
         if is_household_payment:
             refresh_expense_carryovers(household, period)
+        else:
+            refresh_month_rollovers(household, period)
 
 
 class PersonalExpenseViewSet(viewsets.ModelViewSet):
@@ -519,12 +580,23 @@ class PersonalExpenseViewSet(viewsets.ModelViewSet):
         return queryset.filter(period_id=period_id) if period_id else queryset
 
     def perform_create(self, serializer) -> None:
-        serializer.save(
+        entry = serializer.save(
             household=user_household(self.request.user),
             created_by=self.request.user,
             entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
             direction=LedgerEntry.Direction.DEBIT,
         )
+        refresh_month_rollovers(entry.household, entry.period)
+
+    def perform_update(self, serializer) -> None:
+        entry = serializer.save()
+        refresh_month_rollovers(entry.household, entry.period)
+
+    def perform_destroy(self, instance) -> None:
+        household = instance.household
+        period = instance.period
+        instance.delete()
+        refresh_month_rollovers(household, period)
 
 
 class SavingsGoalViewSet(viewsets.ModelViewSet):
@@ -556,10 +628,28 @@ class SavingsMovementViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer) -> None:
-        serializer.save(
+        movement = serializer.save(
             household=user_household(self.request.user),
             created_by=self.request.user,
         )
+        if movement.period:
+            refresh_month_rollovers(movement.household, movement.period)
+
+    def perform_update(self, serializer) -> None:
+        movement = serializer.save()
+        if movement.period:
+            refresh_month_rollovers(movement.household, movement.period)
+
+    def perform_destroy(self, instance) -> None:
+        if instance.kind == SavingsMovement.Kind.ALLOCATION:
+            raise ValidationError(
+                "Month rollover allocations can be changed only by editing their source month."
+            )
+        household = instance.household
+        period = instance.period
+        instance.delete()
+        if period:
+            refresh_month_rollovers(household, period)
 
 
 class BankView(APIView):
@@ -796,7 +886,7 @@ class BackupExportView(APIView):
                 entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
             )
         payload: dict[str, Any] = {
-            "schema_version": 1,
+            "schema_version": 2,
             "exported_at": timezone.now(),
             "scope": "full_household" if owner_export else "personal_only",
             "household": {
@@ -838,6 +928,9 @@ class BackupExportView(APIView):
                     ).data,
                     "savings_movements": SavingsMovementSerializer(
                         household.savings_movements.all(), many=True
+                    ).data,
+                    "rollover_allocations": RolloverAllocationSerializer(
+                        household.rollover_allocations.all(), many=True
                     ).data,
                     "reconciliations": BankReconciliationSerializer(
                         household.bank_account.reconciliations.all(), many=True

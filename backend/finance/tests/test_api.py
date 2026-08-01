@@ -17,7 +17,12 @@ from finance.models import (
     SavingsGoal,
     SavingsMovement,
 )
-from finance.services import generate_month
+from finance.services import (
+    bank_calculated_balance,
+    generate_month,
+    period_summary,
+    savings_goal_balance,
+)
 from finance.tests.factories import create_household, create_member
 
 pytestmark = pytest.mark.django_db
@@ -329,6 +334,190 @@ def test_owner_can_manually_create_and_populate_a_previous_month() -> None:
     assert generated.data["planned_expenses"][0]["remaining_amount"] == Decimal("38000.00")
     assert personal.status_code == 201
     assert savings.status_code == 201
+
+
+def test_new_month_moves_bill_and_safe_to_spend_leftovers_without_changing_bank() -> None:
+    owner, household = create_household()
+    household.monthly_savings_target = Decimal("0.00")
+    household.save(update_fields=["monthly_savings_target", "updated_at"])
+    income_template = RecurringIncome.objects.create(
+        household=household,
+        name="Salary",
+        amount=Decimal("100000.00"),
+    )
+    RecurringExpense.objects.create(
+        household=household,
+        name="Rent",
+        expected_amount=Decimal("30000.00"),
+        due_day=1,
+    )
+    bill_goal = SavingsGoal.objects.create(household=household, name="Others")
+    personal_goal = SavingsGoal.objects.create(household=household, name="Leftovers")
+    july = generate_month(household, 2026, 7)
+    income_plan = july.income_plans.get(template=income_template)
+    rent = july.planned_expenses.get()
+    LedgerEntry.objects.create(
+        household=household,
+        period=july,
+        planned_income=income_plan,
+        created_by=owner,
+        entry_type=LedgerEntry.EntryType.INCOME,
+        direction=LedgerEntry.Direction.CREDIT,
+        date=date(2026, 7, 1),
+        amount=Decimal("100000.00"),
+        description="Salary",
+    )
+    rent_payment = LedgerEntry.objects.create(
+        household=household,
+        period=july,
+        planned_expense=rent,
+        created_by=owner,
+        entry_type=LedgerEntry.EntryType.HOUSEHOLD_EXPENSE,
+        direction=LedgerEntry.Direction.DEBIT,
+        date=date(2026, 7, 2),
+        amount=Decimal("20000.00"),
+        description="Rent",
+    )
+    personal_expense = LedgerEntry.objects.create(
+        household=household,
+        period=july,
+        created_by=owner,
+        entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
+        direction=LedgerEntry.Direction.DEBIT,
+        date=date(2026, 7, 3),
+        amount=Decimal("10000.00"),
+        description="Personal spending",
+    )
+    client = APIClient()
+    client.force_authenticate(owner)
+
+    preview = client.get("/api/v1/months/rollover-preview/?year=2026&month=8")
+    bank_before = bank_calculated_balance(household.bank_account)
+    payload = {
+        "year": 2026,
+        "month": 8,
+        "rollover": {
+            "bill_allocations": [{"planned_expense": rent.id, "destination_goal": bill_goal.id}],
+            "safe_to_spend": {
+                "action": "savings",
+                "destination_goal": personal_goal.id,
+            },
+        },
+    }
+    created = client.post("/api/v1/months/generate/", payload, format="json")
+    repeated = client.post("/api/v1/months/generate/", payload, format="json")
+
+    assert preview.status_code == 200
+    assert preview.data["source_month"] == "2026-07"
+    assert preview.data["unpaid_expenses"] == [
+        {"id": rent.id, "name": "Rent", "remaining_amount": Decimal("10000.00")}
+    ]
+    assert preview.data["safe_to_spend"] == Decimal("60000.00")
+    assert created.status_code == 201
+    assert repeated.status_code == 201
+    assert savings_goal_balance(bill_goal) == Decimal("10000.00")
+    assert savings_goal_balance(personal_goal) == Decimal("60000.00")
+    assert household.rollover_allocations.count() == 2
+    assert household.savings_movements.filter(kind="allocation").count() == 2
+    assert bank_calculated_balance(household.bank_account) == bank_before
+    assert period_summary(july)["safe_to_spend"] == Decimal("0.00")
+
+    payment_update = client.patch(
+        f"/api/v1/ledger/{rent_payment.id}/",
+        {"amount": "25000.00"},
+        format="json",
+    )
+    personal_update = client.patch(
+        f"/api/v1/personal-expenses/{personal_expense.id}/",
+        {"amount": "15000.00"},
+        format="json",
+    )
+    assert payment_update.status_code == 200
+    assert personal_update.status_code == 200
+    assert savings_goal_balance(bill_goal) == Decimal("5000.00")
+    assert savings_goal_balance(personal_goal) == Decimal("55000.00")
+
+    deleted = client.delete(f"/api/v1/months/{created.data['id']}/")
+    assert deleted.status_code == 204
+    assert savings_goal_balance(bill_goal) == Decimal("0.00")
+    assert savings_goal_balance(personal_goal) == Decimal("0.00")
+    assert household.rollover_allocations.count() == 0
+
+
+def test_safe_to_spend_can_carry_into_the_next_month_without_changing_bank() -> None:
+    owner, household = create_household()
+    household.monthly_savings_target = Decimal("0.00")
+    household.save(update_fields=["monthly_savings_target", "updated_at"])
+    income_template = RecurringIncome.objects.create(
+        household=household,
+        name="Salary",
+        amount=Decimal("100000.00"),
+    )
+    RecurringExpense.objects.create(
+        household=household,
+        name="Rent",
+        expected_amount=Decimal("30000.00"),
+        due_day=1,
+    )
+    july = generate_month(household, 2026, 7)
+    LedgerEntry.objects.create(
+        household=household,
+        period=july,
+        planned_income=july.income_plans.get(template=income_template),
+        created_by=owner,
+        entry_type=LedgerEntry.EntryType.INCOME,
+        direction=LedgerEntry.Direction.CREDIT,
+        date=date(2026, 7, 1),
+        amount=Decimal("100000.00"),
+        description="Salary",
+    )
+    rent = july.planned_expenses.get()
+    LedgerEntry.objects.create(
+        household=household,
+        period=july,
+        planned_expense=rent,
+        created_by=owner,
+        entry_type=LedgerEntry.EntryType.HOUSEHOLD_EXPENSE,
+        direction=LedgerEntry.Direction.DEBIT,
+        date=date(2026, 7, 2),
+        amount=Decimal("30000.00"),
+        description="Rent",
+    )
+    LedgerEntry.objects.create(
+        household=household,
+        period=july,
+        created_by=owner,
+        entry_type=LedgerEntry.EntryType.PERSONAL_EXPENSE,
+        direction=LedgerEntry.Direction.DEBIT,
+        date=date(2026, 7, 3),
+        amount=Decimal("10000.00"),
+        description="Personal spending",
+    )
+    client = APIClient()
+    client.force_authenticate(owner)
+    bank_before = bank_calculated_balance(household.bank_account)
+
+    response = client.post(
+        "/api/v1/months/generate/",
+        {
+            "year": 2026,
+            "month": 8,
+            "rollover": {
+                "bill_allocations": [],
+                "safe_to_spend": {"action": "carryover"},
+            },
+        },
+        format="json",
+    )
+
+    august = household.periods.get(year=2026, month=8)
+    august_summary = period_summary(august)
+    assert response.status_code == 201
+    assert response.data["safe_to_spend_carryover"] == Decimal("60000.00")
+    assert august_summary["safe_to_spend_carryover"] == Decimal("60000.00")
+    assert august_summary["safe_to_spend"] == Decimal("30000.00")
+    assert bank_calculated_balance(household.bank_account) == bank_before
+    assert household.savings_movements.filter(kind="allocation").count() == 0
 
 
 def test_owner_can_delete_a_complete_month_and_later_carryovers_recalculate() -> None:

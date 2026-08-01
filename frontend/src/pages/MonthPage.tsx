@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowLeft,
   ArrowRightLeft,
   ArrowDownToLine,
   CalendarPlus,
@@ -27,7 +28,7 @@ import {
 import { Modal } from "../components/Modal";
 import { SavingsMovementForm } from "../components/SavingsMovementForm";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
-import type { Month, Paginated, SavingsGoal, Session } from "../types";
+import type { Month, Paginated, RolloverPreview, SavingsGoal, Session } from "../types";
 
 interface PersonalExpense {
   id: number;
@@ -125,9 +126,15 @@ export function MonthPage() {
                 onOpenChange={setAddMonthOpen}
               >
                 <AddMonthForm
+                  goals={goals.data?.results ?? []}
                   onCreated={async (created) => {
                     setAddMonthOpen(false);
-                    await queryClient.invalidateQueries({ queryKey: ["months"] });
+                    await Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ["months"] }),
+                      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+                      queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+                      queryClient.invalidateQueries({ queryKey: ["trends"] }),
+                    ]);
                     navigate(`/app/month/${created.label}`);
                   }}
                 />
@@ -199,9 +206,15 @@ export function MonthPage() {
                   onOpenChange={setAddMonthOpen}
                 >
                   <AddMonthForm
+                    goals={goals.data?.results ?? []}
                     onCreated={async (created) => {
                       setAddMonthOpen(false);
-                      await queryClient.invalidateQueries({ queryKey: ["months"] });
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["months"] }),
+                        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+                        queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+                        queryClient.invalidateQueries({ queryKey: ["trends"] }),
+                      ]);
                       navigate(`/app/month/${created.label}`);
                     }}
                   />
@@ -273,6 +286,16 @@ export function MonthPage() {
           </div>
         }
       />
+
+      {money(data.safe_to_spend_carryover) > 0 && (
+        <div className="callout positive month-carryover-callout">
+          <ArrowRightLeft size={19} />
+          <div>
+            <strong>{formatPkr(data.safe_to_spend_carryover)} carried forward</strong>
+            <span>This amount from the previous month is included in this month’s safe to spend.</span>
+          </div>
+        </div>
+      )}
 
       <section className="month-summary">
         <div>
@@ -686,42 +709,165 @@ function previousMonthLabel() {
   return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function AddMonthForm({ onCreated }: { onCreated: (month: Month) => Promise<void> }) {
+export function AddMonthForm({
+  goals,
+  onCreated,
+}: {
+  goals: SavingsGoal[];
+  onCreated: (month: Month) => Promise<void>;
+}) {
   const [monthValue, setMonthValue] = useState(previousMonthLabel);
-  const mutation = useMutation({
-    mutationFn: () => {
+  const [preview, setPreview] = useState<RolloverPreview | null>(null);
+  const [billGoals, setBillGoals] = useState<Record<number, string>>({});
+  const [safeAction, setSafeAction] = useState<"" | "carryover" | "savings">("");
+  const [safeGoal, setSafeGoal] = useState("");
+  const activeGoals = goals.filter((goal) => goal.active);
+  const createMutation = useMutation({
+    mutationFn: (rollover: unknown | null) => {
       const [year, month] = monthValue.split("-").map(Number);
-      return postJson<Month>("/months/generate/", { year, month });
+      return postJson<Month>("/months/generate/", {
+        year,
+        month,
+        ...(rollover ? { rollover } : {}),
+      });
     },
     onSuccess: onCreated,
   });
+  const previewMutation = useMutation({
+    mutationFn: () => {
+      const [year, month] = monthValue.split("-").map(Number);
+      return api<RolloverPreview>(`/months/rollover-preview/?year=${year}&month=${month}`);
+    },
+    onSuccess: (result) => {
+      if (!result.unpaid_expenses.length && money(result.safe_to_spend) <= 0) {
+        createMutation.mutate(null);
+        return;
+      }
+      setPreview(result);
+      setBillGoals({});
+      setSafeAction("");
+      setSafeGoal("");
+    },
+  });
+  const rolloverReady = Boolean(
+    preview
+      && preview.unpaid_expenses.every((expense) => billGoals[expense.id])
+      && (money(preview.safe_to_spend) <= 0
+        || (safeAction === "carryover")
+        || (safeAction === "savings" && safeGoal)),
+  );
+
+  const createWithRollover = () => {
+    if (!preview || !rolloverReady) return;
+    createMutation.mutate({
+      bill_allocations: preview.unpaid_expenses.map((expense) => ({
+        planned_expense: expense.id,
+        destination_goal: Number(billGoals[expense.id]),
+      })),
+      safe_to_spend:
+        money(preview.safe_to_spend) > 0
+          ? {
+              action: safeAction,
+              destination_goal: safeAction === "savings" ? Number(safeGoal) : null,
+            }
+          : null,
+    });
+  };
 
   return (
     <form
       className="stack-form"
       onSubmit={(event) => {
         event.preventDefault();
-        mutation.mutate();
+        if (preview) createWithRollover();
+        else previewMutation.mutate();
       }}
     >
-      <label>
-        Month
-        <input
-          required
-          type="month"
-          min="2000-01"
-          max="2100-12"
-          value={monthValue}
-          onChange={(event) => setMonthValue(event.target.value)}
-        />
-      </label>
-      <p className="field-help">
-        Income, bills, due dates, and the savings target are copied from your recurring plan.
-      </p>
-      {mutation.isError && <p className="form-error">Could not create this month.</p>}
-      <button className="button primary full" disabled={mutation.isPending}>
+      {!preview ? (
+        <>
+          <label>
+            Month
+            <input
+              required
+              type="month"
+              min="2000-01"
+              max="2100-12"
+              value={monthValue}
+              onChange={(event) => setMonthValue(event.target.value)}
+            />
+          </label>
+          <p className="field-help">
+            Income, bills, due dates, and the savings target are copied from your recurring plan.
+            We’ll check the previous month for money that still needs a destination.
+          </p>
+        </>
+      ) : (
+        <div className="rollover-step">
+          <div className="rollover-heading">
+            <span>Previous month closeout</span>
+            <strong>Decide where {preview.source_month} leftovers should go</strong>
+            <p>These are internal allocations. Your calculated bank balance will not change.</p>
+          </div>
+          {preview.unpaid_expenses.length > 0 && (
+            <div className="rollover-group">
+              <h3>Unpaid household amounts</h3>
+              <p>Choose a savings goal for each amount that was planned but not paid.</p>
+              {preview.unpaid_expenses.map((expense) => (
+                <label className="rollover-row" key={expense.id}>
+                  <span><strong>{expense.name}</strong><small>{formatPkr(expense.remaining_amount)} left unpaid</small></span>
+                  <select
+                    required
+                    value={billGoals[expense.id] ?? ""}
+                    onChange={(event) => setBillGoals({ ...billGoals, [expense.id]: event.target.value })}
+                  >
+                    <option value="">Choose savings goal</option>
+                    {activeGoals.map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}
+                  </select>
+                </label>
+              ))}
+            </div>
+          )}
+          {money(preview.safe_to_spend) > 0 && (
+            <div className="rollover-group">
+              <h3>Safe-to-spend leftover</h3>
+              <p>{formatPkr(preview.safe_to_spend)} remained after planned bills, savings, and personal spending.</p>
+              <label>
+                What should happen to this amount?
+                <select required value={safeAction} onChange={(event) => setSafeAction(event.target.value as typeof safeAction)}>
+                  <option value="">Choose an action</option>
+                  <option value="carryover">Add to the new month’s safe to spend</option>
+                  <option value="savings">Move to a savings goal</option>
+                </select>
+              </label>
+              {safeAction === "savings" && (
+                <label>
+                  Savings goal
+                  <select required value={safeGoal} onChange={(event) => setSafeGoal(event.target.value)}>
+                    <option value="">Choose savings goal</option>
+                    {activeGoals.map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+          {!activeGoals.length && preview.unpaid_expenses.length > 0 && (
+            <p className="form-error">Create or reactivate a savings goal before closing unpaid household amounts.</p>
+          )}
+          <button type="button" className="button secondary small rollover-back" onClick={() => setPreview(null)}>
+            <ArrowLeft size={15} /> Change month
+          </button>
+        </div>
+      )}
+      {(previewMutation.isError || createMutation.isError) && <p className="form-error">Could not create this month. Please review the rollover choices.</p>}
+      <button className="button primary full" disabled={previewMutation.isPending || createMutation.isPending || (preview !== null && !rolloverReady)}>
         <CalendarPlus size={17} />
-        {mutation.isPending ? "Creating…" : "Create monthly workspace"}
+        {previewMutation.isPending
+          ? "Checking previous month…"
+          : createMutation.isPending
+            ? "Creating…"
+            : preview
+              ? "Create month and apply choices"
+              : "Continue"}
       </button>
     </form>
   );

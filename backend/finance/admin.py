@@ -14,6 +14,7 @@ for model in (
     models.PlannedExpense,
     models.LedgerEntry,
     models.SavingsGoal,
+    models.RolloverAllocation,
     models.SavingsMovement,
     models.BankReconciliation,
     models.Notification,

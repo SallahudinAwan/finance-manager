@@ -434,6 +434,30 @@ const urduMessages: Record<string, string> = {
     "یہ نیا بینک لین دین بنائے بغیر منتخب مہینے کے لیے مجازی بچت مختص کرتا ہے۔",
   "Income, bills, due dates, and the savings target are copied from your recurring plan.":
     "آمدنی، بل، آخری تاریخیں اور بچت کا ہدف آپ کے مستقل منصوبے سے نقل ہوتے ہیں۔",
+  "We’ll check the previous month for money that still needs a destination.":
+    "ہم پچھلے مہینے کی اس رقم کو دیکھیں گے جس کے لیے ابھی منزل منتخب کرنا باقی ہے۔",
+  "Previous month closeout": "پچھلے مہینے کا اختتام",
+  "These are internal allocations. Your calculated bank balance will not change.":
+    "یہ اندرونی تقسیم ہے۔ آپ کا حساب شدہ بینک بیلنس تبدیل نہیں ہوگا۔",
+  "Unpaid household amounts": "غیر ادا شدہ گھریلو رقوم",
+  "Choose a savings goal for each amount that was planned but not paid.":
+    "ہر منصوبہ شدہ مگر غیر ادا شدہ رقم کے لیے بچت کا ہدف منتخب کریں۔",
+  "Choose savings goal": "بچت کا ہدف منتخب کریں",
+  "Safe-to-spend leftover": "خرچ کے لیے محفوظ بچی ہوئی رقم",
+  "What should happen to this amount?": "اس رقم کے ساتھ کیا کیا جائے؟",
+  "Choose an action": "اقدام منتخب کریں",
+  "Add to the new month’s safe to spend": "نئے مہینے کی خرچ کے لیے محفوظ رقم میں شامل کریں",
+  "Move to a savings goal": "بچت کے ہدف میں منتقل کریں",
+  "Savings goal": "بچت کا ہدف",
+  "Create or reactivate a savings goal before closing unpaid household amounts.":
+    "غیر ادا شدہ گھریلو رقوم تقسیم کرنے سے پہلے بچت کا ہدف بنائیں یا دوبارہ فعال کریں۔",
+  "Change month": "مہینہ تبدیل کریں",
+  "Could not create this month. Please review the rollover choices.":
+    "یہ مہینہ نہیں بنایا جا سکا۔ منتقلی کے انتخاب دوبارہ دیکھیں۔",
+  "Checking previous month…": "پچھلا مہینہ دیکھا جا رہا ہے…",
+  "Create month and apply choices": "مہینہ بنائیں اور انتخاب لاگو کریں",
+  "This amount from the previous month is included in this month’s safe to spend.":
+    "پچھلے مہینے کی یہ رقم اس مہینے کی خرچ کے لیے محفوظ رقم میں شامل ہے۔",
   "Members see only their own personal expense details. The owner can include all private entries only in an explicit full backup.":
     "ارکان صرف اپنے ذاتی اخراجات کی تفصیل دیکھتے ہیں۔ مالک تمام نجی اندراجات صرف واضح مکمل بیک اپ میں شامل کر سکتا ہے۔",
   "Owners must transfer ownership while another active member remains. Account deletion is permanent.":
@@ -456,6 +480,20 @@ function translate(message: string): string {
 
   const dueDay = message.match(/^Due day (\d+) · (\d+) days notice$/);
   if (dueDay) return `آخری تاریخ ${dueDay[1]} · ${dueDay[2]} دن پہلے اطلاع`;
+
+  const rolloverHeading = message.match(/^Decide where (.+) leftovers should go$/);
+  if (rolloverHeading) return `طے کریں کہ ${rolloverHeading[1]} کی بچی ہوئی رقم کہاں جائے`;
+
+  const unpaidLeft = message.match(/^(.+) left unpaid$/);
+  if (unpaidLeft) return `${unpaidLeft[1]} غیر ادا شدہ`;
+
+  const safeLeft = message.match(/^(.+) remained after planned bills, savings, and personal spending\.$/);
+  if (safeLeft) {
+    return `منصوبہ شدہ بلوں، بچت اور ذاتی اخراجات کے بعد ${safeLeft[1]} باقی رہے۔`;
+  }
+
+  const carriedForward = message.match(/^(.+) carried forward$/);
+  if (carriedForward) return `${carriedForward[1]} اگلے مہینے منتقل`;
 
   return message;
 }

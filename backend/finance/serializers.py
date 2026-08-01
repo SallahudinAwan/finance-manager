@@ -22,11 +22,12 @@ from .models import (
     PlannedExpense,
     RecurringExpense,
     RecurringIncome,
+    RolloverAllocation,
     SavingsGoal,
     SavingsMovement,
     UserPreference,
 )
-from .services import generate_month, savings_goal_balance
+from .services import generate_month, period_safe_to_spend_carryover, savings_goal_balance
 
 
 class MoneyField(serializers.DecimalField):
@@ -159,6 +160,7 @@ class PlannedExpenseSerializer(serializers.ModelSerializer):
 
 class MonthlyPeriodSerializer(serializers.ModelSerializer):
     label = serializers.CharField(read_only=True)
+    safe_to_spend_carryover = serializers.SerializerMethodField()
     income_plans = MonthlyIncomePlanSerializer(many=True, read_only=True)
     planned_expenses = PlannedExpenseSerializer(many=True, read_only=True)
 
@@ -170,11 +172,15 @@ class MonthlyPeriodSerializer(serializers.ModelSerializer):
             "month",
             "label",
             "savings_target",
+            "safe_to_spend_carryover",
             "income_plans",
             "planned_expenses",
             "created_at",
             "updated_at",
         ]
+
+    def get_safe_to_spend_carryover(self, obj: MonthlyPeriod) -> Decimal:
+        return period_safe_to_spend_carryover(obj)
 
 
 class LedgerEntrySerializer(serializers.ModelSerializer):
@@ -378,13 +384,19 @@ class SavingsMovementSerializer(serializers.ModelSerializer):
             "date",
             "amount",
             "notes",
+            "rollover_allocation",
             "created_at",
         ]
-        read_only_fields = ["created_at"]
+        read_only_fields = ["rollover_allocation", "created_at"]
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         request = self.context["request"]
         household = request.user.finance_membership.household
+        kind = attrs.get("kind", getattr(self.instance, "kind", None))
+        if kind == SavingsMovement.Kind.ALLOCATION:
+            raise serializers.ValidationError(
+                {"kind": "Internal allocations are created only during month rollover."}
+            )
         period = attrs.get("period")
         if period and period.household_id != household.id:
             raise serializers.ValidationError("Period does not belong to your household.")
@@ -431,6 +443,69 @@ class SavingsMovementSerializer(serializers.ModelSerializer):
                     {"amount": "This movement exceeds the source goal balance."}
                 )
         return attrs
+
+
+class RolloverAllocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RolloverAllocation
+        fields = [
+            "id",
+            "source_period",
+            "destination_period",
+            "source_expense",
+            "destination_goal",
+            "source_kind",
+            "action",
+            "amount",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class BillRolloverInputSerializer(serializers.Serializer):
+    planned_expense = serializers.IntegerField(min_value=1)
+    destination_goal = serializers.IntegerField(min_value=1)
+
+
+class SafeToSpendRolloverInputSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=RolloverAllocation.Action.choices)
+    destination_goal = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs["action"] == RolloverAllocation.Action.SAVINGS and not attrs.get(
+            "destination_goal"
+        ):
+            raise serializers.ValidationError(
+                {"destination_goal": "Choose a savings goal for this amount."}
+            )
+        if attrs["action"] == RolloverAllocation.Action.CARRYOVER and attrs.get("destination_goal"):
+            raise serializers.ValidationError(
+                {"destination_goal": "A carryover does not use a savings goal."}
+            )
+        return attrs
+
+
+class MonthRolloverInputSerializer(serializers.Serializer):
+    bill_allocations = BillRolloverInputSerializer(many=True, required=False, default=list)
+    safe_to_spend = SafeToSpendRolloverInputSerializer(required=False, allow_null=True)
+
+
+class MonthGenerateInputSerializer(serializers.Serializer):
+    year = serializers.IntegerField(min_value=2000, max_value=2100, required=False)
+    month = serializers.IntegerField(min_value=1, max_value=12, required=False)
+    rollover = MonthRolloverInputSerializer(required=False)
+
+
+class RolloverExpensePreviewSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    remaining_amount = MoneyField()
+
+
+class RolloverPreviewSerializer(serializers.Serializer):
+    source_month = serializers.CharField(allow_null=True)
+    unpaid_expenses = RolloverExpensePreviewSerializer(many=True)
+    safe_to_spend = MoneyField()
 
 
 class ReconciliationInputSerializer(serializers.Serializer):

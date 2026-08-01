@@ -27,6 +27,7 @@ from .models import (
     RecurringExpense,
     RecurringIncome,
     ReminderDelivery,
+    RolloverAllocation,
     SavingsGoal,
     SavingsMovement,
 )
@@ -116,6 +117,7 @@ def refresh_expense_carryovers(
                 changed.append(expense)
         if changed:
             PlannedExpense.objects.bulk_update(changed, ["carryover_credit"])
+    refresh_month_rollovers(household, from_period)
 
 
 @transaction.atomic
@@ -227,6 +229,10 @@ def delete_month(period: MonthlyPeriod, actor: Any) -> dict[str, int]:
     counts = {
         "ledger_entries": period.ledger_entries.count(),
         "savings_movements": period.savings_movements.count(),
+        "rollover_allocations": (
+            period.incoming_rollover_allocations.count()
+            + period.outgoing_rollover_allocations.count()
+        ),
         "reconciliations": household.bank_account.reconciliations.filter(
             date__gte=month_start,
             date__lt=next_month_start,
@@ -234,6 +240,8 @@ def delete_month(period: MonthlyPeriod, actor: Any) -> dict[str, int]:
     }
 
     period.ledger_entries.all().delete()
+    period.incoming_rollover_allocations.all().delete()
+    period.outgoing_rollover_allocations.all().delete()
     period.savings_movements.all().delete()
     household.bank_account.reconciliations.filter(
         date__gte=month_start,
@@ -335,13 +343,42 @@ def savings_goal_balance(goal: SavingsGoal) -> Decimal:
 
 
 def period_net_new_savings(period: MonthlyPeriod) -> Decimal:
-    contributions = period.savings_movements.filter(
+    incoming = period.savings_movements.filter(
+        kind__in=[SavingsMovement.Kind.CONTRIBUTION, SavingsMovement.Kind.ALLOCATION]
+    ).aggregate(total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD)))["total"]
+    withdrawals = period.savings_movements.filter(kind=SavingsMovement.Kind.WITHDRAWAL).aggregate(
+        total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD))
+    )["total"]
+    return incoming - withdrawals
+
+
+def period_reserved_savings(
+    period: MonthlyPeriod,
+    *,
+    include_safe_to_spend_allocations: bool = True,
+) -> Decimal:
+    """Savings that should reduce safe-to-spend without double-counting unpaid bills."""
+    external_contributions = period.savings_movements.filter(
         kind=SavingsMovement.Kind.CONTRIBUTION
     ).aggregate(total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD)))["total"]
     withdrawals = period.savings_movements.filter(kind=SavingsMovement.Kind.WITHDRAWAL).aggregate(
         total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD))
     )["total"]
-    return contributions - withdrawals
+    reserved = max(period.savings_target, external_contributions - withdrawals)
+    if include_safe_to_spend_allocations:
+        safe_allocations = period.savings_movements.filter(
+            kind=SavingsMovement.Kind.ALLOCATION,
+            rollover_allocation__source_kind=RolloverAllocation.SourceKind.SAFE_TO_SPEND,
+        ).aggregate(total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD)))["total"]
+        reserved += safe_allocations
+    return reserved
+
+
+def period_safe_to_spend_carryover(period: MonthlyPeriod) -> Decimal:
+    return period.incoming_rollover_allocations.filter(
+        source_kind=RolloverAllocation.SourceKind.SAFE_TO_SPEND,
+        action=RolloverAllocation.Action.CARRYOVER,
+    ).aggregate(total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD)))["total"]
 
 
 def period_summary(period: MonthlyPeriod) -> dict[str, Any]:
@@ -367,7 +404,8 @@ def period_summary(period: MonthlyPeriod) -> dict[str, Any]:
         total=Coalesce(Sum("planned_amount"), Value(ZERO, output_field=MONEY_FIELD))
     )["total"]
     net_new_savings = period_net_new_savings(period)
-    reserved_savings = max(period.savings_target, net_new_savings)
+    reserved_savings = period_reserved_savings(period)
+    safe_to_spend_carryover = period_safe_to_spend_carryover(period)
 
     return {
         "id": period.id,
@@ -382,9 +420,212 @@ def period_summary(period: MonthlyPeriod) -> dict[str, Any]:
         "personal_spent": personal_spent,
         "savings_target": period.savings_target,
         "net_new_savings": net_new_savings,
-        "safe_to_spend": (income_received - planned_household - reserved_savings - personal_spent),
+        "safe_to_spend_carryover": safe_to_spend_carryover,
+        "safe_to_spend": (
+            safe_to_spend_carryover
+            + income_received
+            - planned_household
+            - reserved_savings
+            - personal_spent
+        ),
         "net_cash_flow": income_received - household_paid - personal_spent,
     }
+
+
+def rollover_available_safe_to_spend(period: MonthlyPeriod) -> Decimal:
+    income_received = period_amount(
+        period, LedgerEntry.EntryType.INCOME, LedgerEntry.Direction.CREDIT
+    )
+    planned_household = period.planned_expenses.aggregate(
+        total=Coalesce(Sum("expected_amount"), Value(ZERO, output_field=MONEY_FIELD))
+    )["total"]
+    personal_spent = period_amount(
+        period, LedgerEntry.EntryType.PERSONAL_EXPENSE, LedgerEntry.Direction.DEBIT
+    )
+    return (
+        period_safe_to_spend_carryover(period)
+        + income_received
+        - planned_household
+        - period_reserved_savings(period, include_safe_to_spend_allocations=False)
+        - personal_spent
+    )
+
+
+def rollover_preview(household: Household, year: int, month: int) -> dict[str, Any]:
+    previous_year, previous_month = _adjacent_month(year, month, -1)
+    source = household.periods.filter(
+        year=previous_year,
+        month=previous_month,
+        is_deleted=False,
+    ).first()
+    if source is None:
+        return {"source_month": None, "unpaid_expenses": [], "safe_to_spend": ZERO}
+
+    completed_keys = set(source.outgoing_rollover_allocations.values_list("source_key", flat=True))
+    unpaid_expenses = [
+        {
+            "id": expense.id,
+            "name": expense.name,
+            "remaining_amount": expense.remaining_amount,
+        }
+        for expense in source.planned_expenses.prefetch_related("ledger_entries")
+        if expense.remaining_amount > ZERO and f"bill:{expense.id}" not in completed_keys
+    ]
+    safe_to_spend = (
+        ZERO
+        if "safe_to_spend" in completed_keys
+        else max(rollover_available_safe_to_spend(source), ZERO)
+    )
+    return {
+        "source_month": source.label,
+        "unpaid_expenses": unpaid_expenses,
+        "safe_to_spend": safe_to_spend,
+    }
+
+
+class RolloverValidationError(ValueError):
+    pass
+
+
+@transaction.atomic
+def apply_month_rollovers(
+    household: Household,
+    destination: MonthlyPeriod,
+    actor: Any,
+    *,
+    bill_allocations: list[dict[str, int]],
+    safe_to_spend: dict[str, Any] | None,
+) -> None:
+    previous_year, previous_month = _adjacent_month(destination.year, destination.month, -1)
+    source = household.periods.filter(
+        year=previous_year,
+        month=previous_month,
+        is_deleted=False,
+    ).first()
+    if source is None:
+        if bill_allocations or safe_to_spend:
+            raise RolloverValidationError("The previous calendar month is not available.")
+        return
+
+    active_goals = {goal.id: goal for goal in household.savings_goals.filter(active=True)}
+
+    def goal_for(goal_id: int) -> SavingsGoal:
+        goal = active_goals.get(goal_id)
+        if goal is None:
+            raise RolloverValidationError("Choose an active savings goal in this household.")
+        return goal
+
+    seen_expenses: set[int] = set()
+    for item in bill_allocations:
+        expense_id = item["planned_expense"]
+        if expense_id in seen_expenses:
+            raise RolloverValidationError("Each household bill can be allocated only once.")
+        seen_expenses.add(expense_id)
+        source_key = f"bill:{expense_id}"
+        if source.outgoing_rollover_allocations.filter(source_key=source_key).exists():
+            continue
+        expense = (
+            source.planned_expenses.prefetch_related("ledger_entries").filter(pk=expense_id).first()
+        )
+        if expense is None or expense.remaining_amount <= ZERO:
+            raise RolloverValidationError("Choose an unpaid bill from the previous month.")
+        goal = goal_for(item["destination_goal"])
+        allocation = RolloverAllocation(
+            household=household,
+            source_period=source,
+            destination_period=destination,
+            source_expense=expense,
+            destination_goal=goal,
+            created_by=actor,
+            source_kind=RolloverAllocation.SourceKind.HOUSEHOLD_REMAINDER,
+            source_key=source_key,
+            action=RolloverAllocation.Action.SAVINGS,
+            amount=expense.remaining_amount,
+        )
+        allocation.full_clean()
+        allocation.save()
+        SavingsMovement.objects.create(
+            household=household,
+            period=source,
+            created_by=actor,
+            rollover_allocation=allocation,
+            kind=SavingsMovement.Kind.ALLOCATION,
+            destination_goal=goal,
+            date=date(source.year, source.month, source.last_day),
+            amount=allocation.amount,
+            notes=f"Unpaid {expense.name} moved to savings when {destination.label} was created",
+        )
+
+    if not safe_to_spend:
+        return
+    if source.outgoing_rollover_allocations.filter(source_key="safe_to_spend").exists():
+        return
+    available = max(rollover_available_safe_to_spend(source), ZERO)
+    if available <= ZERO:
+        raise RolloverValidationError("There is no positive safe-to-spend amount to move.")
+    action = safe_to_spend["action"]
+    goal = (
+        goal_for(safe_to_spend["destination_goal"])
+        if action == RolloverAllocation.Action.SAVINGS
+        else None
+    )
+    allocation = RolloverAllocation(
+        household=household,
+        source_period=source,
+        destination_period=destination,
+        destination_goal=goal,
+        created_by=actor,
+        source_kind=RolloverAllocation.SourceKind.SAFE_TO_SPEND,
+        source_key="safe_to_spend",
+        action=action,
+        amount=available,
+    )
+    allocation.full_clean()
+    allocation.save()
+    if action == RolloverAllocation.Action.SAVINGS:
+        SavingsMovement.objects.create(
+            household=household,
+            period=source,
+            created_by=actor,
+            rollover_allocation=allocation,
+            kind=SavingsMovement.Kind.ALLOCATION,
+            destination_goal=goal,
+            date=date(source.year, source.month, source.last_day),
+            amount=allocation.amount,
+            notes=f"Safe-to-spend moved to savings when {destination.label} was created",
+        )
+
+
+@transaction.atomic
+def refresh_month_rollovers(household: Household, from_period: MonthlyPeriod) -> None:
+    """Keep finalized rollover amounts accurate after historical transactions change."""
+    periods = household.periods.filter(
+        Q(year__gt=from_period.year) | Q(year=from_period.year, month__gte=from_period.month),
+        is_deleted=False,
+    ).order_by("year", "month")
+    for period in periods:
+        allocations = list(
+            period.outgoing_rollover_allocations.select_related(
+                "source_expense",
+                "destination_goal",
+            ).prefetch_related("source_expense__ledger_entries")
+        )
+        for allocation in allocations:
+            if allocation.source_kind == RolloverAllocation.SourceKind.HOUSEHOLD_REMAINDER:
+                amount = allocation.source_expense.remaining_amount
+            else:
+                amount = max(rollover_available_safe_to_spend(period), ZERO)
+            if amount <= ZERO:
+                allocation.delete()
+                continue
+            if allocation.amount == amount:
+                continue
+            allocation.amount = amount
+            allocation.save(update_fields=["amount", "updated_at"])
+            SavingsMovement.objects.filter(rollover_allocation=allocation).update(
+                amount=amount,
+                updated_at=timezone.now(),
+            )
 
 
 def dashboard_data(household: Household, period: MonthlyPeriod) -> dict[str, Any]:

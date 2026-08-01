@@ -39,6 +39,7 @@ export interface PeriodSummary {
   house_balance: Money;
   personal_spent: Money;
   savings_target: Money;
+  safe_to_spend_carryover: Money;
   net_new_savings: Money;
   safe_to_spend: Money;
   net_cash_flow: Money;
@@ -71,8 +72,19 @@ export interface Month {
   month: number;
   label: string;
   savings_target: Money;
+  safe_to_spend_carryover: Money;
   income_plans: IncomePlan[];
   planned_expenses: PlannedExpense[];
+}
+
+export interface RolloverPreview {
+  source_month: string | null;
+  unpaid_expenses: Array<{
+    id: number;
+    name: string;
+    remaining_amount: Money;
+  }>;
+  safe_to_spend: Money;
 }
 
 export interface SavingsGoal {
