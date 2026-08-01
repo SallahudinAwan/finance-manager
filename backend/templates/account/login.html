@@ -7,7 +7,7 @@
   <div class="eyebrow">{% trans "Secure sign in" %}</div>
   <h1 id="auth-title">{% trans "Welcome back" %}</h1>
   <p class="subtitle">
-    {% trans "Use your Google account to continue to your private Finance Manager workspace." %}
+    {% trans "Use your Google account to continue to your private Ravani workspace." %}
   </p>
 
   {% provider_login_url "google" process="login" as google_login_url %}
@@ -31,6 +31,6 @@
       <path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3v8Z"></path>
       <path d="m9 12 2 2 4-4"></path>
     </svg>
-    {% trans "Google handles your authentication. Finance Manager never receives or stores your Google password." %}
+    {% trans "Google handles your authentication. Ravani never receives or stores your Google password." %}
   </p>
 {% endblock content %}

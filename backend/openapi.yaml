@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Finance Manager API
+  title: Ravani API
   version: 1.0.0
   description: Household finance planning and reconciliation API.
 paths:

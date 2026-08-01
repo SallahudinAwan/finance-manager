@@ -38,7 +38,7 @@ export function DashboardPage() {
   if (dashboard.isLoading) {
     return (
       <>
-        <PageHeader title="Your financial home" description="Loading this month’s plan…" />
+        <PageHeader title="Your month, in one clear flow" description="Loading this month’s plan…" />
         <div className="metric-grid">
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} height={140} />
@@ -99,7 +99,7 @@ export function DashboardPage() {
           appLocale(),
           { month: "long", year: "numeric" },
         )}
-        title="Your financial home"
+        title="Your month, in one clear flow"
         description="A clear view of what is safe to spend, what is reserved, and what is actually in the bank."
         actions={
           <Link className="button primary" to="/app/month">

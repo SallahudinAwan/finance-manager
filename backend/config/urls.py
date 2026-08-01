@@ -18,7 +18,7 @@ def spa(_: HttpRequest) -> HttpResponse:
     if index_path.exists():
         return FileResponse(index_path.open("rb"), content_type="text/html")
     return HttpResponse(
-        "<h1>Finance Manager API</h1><p>Run the Vite development server on port 5173.</p>",
+        "<h1>Ravani API</h1><p>Run the Vite development server on port 5173.</p>",
         content_type="text/html",
     )
 

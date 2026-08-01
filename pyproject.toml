@@ -1,7 +1,7 @@
 [project]
 name = "finance-manager"
 version = "0.1.0"
-description = "A privacy-aware household finance manager."
+description = "Ravani, a privacy-aware monthly money manager."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [

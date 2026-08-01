@@ -1,10 +1,13 @@
-# Finance Manager
+# Ravani
 
-A privacy-aware household finance application for PKR households in the Asia/Karachi time
+A privacy-aware monthly money manager for PKR households in the Asia/Karachi time
 zone. It replaces a monthly spreadsheet with an auditable plan, actual transaction ledger,
 virtual savings envelopes, reconciliation, reports, reminders, and exports.
 
-![Finance Manager landing page](docs/screenshots/landing-desktop.png)
+**Har maah, har rupay ka hisaab.** Ravani gives every rupee a destination from salary
+day to month-end.
+
+![Ravani landing page](docs/screenshots/landing-desktop.png)
 
 ## Product behavior
 
@@ -146,7 +149,7 @@ connectivity, CSV/JSON downloads, and desktop/mobile layouts.
 ## Backup and deletion
 
 Owners can download a versioned full JSON backup; members can export their own personal
-ledger details. Finance Manager v1 intentionally has no restore/import feature. An owner with
+ledger details. Ravani v1 intentionally has no restore/import feature. An owner with
 active members must transfer ownership before leaving or deleting their account. A sole owner
 deleting the account permanently deletes the household’s finance data.
 

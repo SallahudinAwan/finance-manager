@@ -51,7 +51,7 @@ const SettingsPage = lazy(() =>
 function PageFallback() {
   return (
     <div className="boot-screen">
-      <div className="boot-brand">FM</div>
+      <div className="boot-brand">R</div>
       <Skeleton height={10} />
     </div>
   );

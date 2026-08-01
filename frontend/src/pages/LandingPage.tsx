@@ -2,7 +2,6 @@ import {
   ArrowRight,
   BarChart3,
   Check,
-  Landmark,
   LockKeyhole,
   PiggyBank,
   ReceiptText,
@@ -10,6 +9,7 @@ import {
   Sparkles,
   WalletCards,
 } from "lucide-react";
+import { RavaniMark } from "../components/RavaniMark";
 
 export function LandingPage() {
   const next = encodeURIComponent(window.location.pathname);
@@ -18,9 +18,9 @@ export function LandingPage() {
       <header className="landing-nav">
         <a className="landing-brand" href="/">
           <span>
-            <Landmark size={19} />
+            <RavaniMark size={19} />
           </span>
-          Finance Manager
+          Ravani
         </a>
         <a
           className="button secondary"
@@ -33,15 +33,15 @@ export function LandingPage() {
         <section className="hero">
           <div className="hero-copy">
             <span className="hero-badge">
-              <Sparkles size={15} /> Built for real household money
+              <Sparkles size={15} /> Har maah, har rupay ka hisaab
             </span>
             <h1>
-              Know what is safe to spend.
-              <em> Protect what matters.</em>
+              Give every rupee a path.
+              <em> Own the whole month.</em>
             </h1>
             <p>
-              Plan monthly bills, keep personal spending private, grow savings,
-              and reconcile the balance your bank actually shows.
+              From salary day to month-end, plan household bills, protect savings,
+              manage personal spending, and know exactly what remains.
             </p>
             <div className="hero-actions">
               <a
@@ -60,10 +60,10 @@ export function LandingPage() {
               <span><Check size={15} /> Export your data anytime</span>
             </div>
           </div>
-          <div className="hero-visual" aria-label="Finance Manager dashboard preview">
+          <div className="hero-visual" aria-label="Ravani monthly money dashboard preview">
             <div className="preview-window">
               <div className="preview-top">
-                <span className="preview-logo"><Landmark size={14} /></span>
+                <span className="preview-logo"><RavaniMark size={14} /></span>
                 <b>August overview</b>
                 <span className="preview-avatar">SA</span>
               </div>
@@ -123,7 +123,7 @@ export function LandingPage() {
         <section className="feature-section">
           <div className="section-heading">
             <span>A calmer monthly routine</span>
-            <h2>One place for the plan and the truth</h2>
+            <h2>From salary day to month-end</h2>
             <p>Expected bills and actual bank movements stay separate, so your numbers remain useful all month.</p>
           </div>
           <div className="feature-grid">
@@ -146,7 +146,7 @@ export function LandingPage() {
         </section>
       </main>
       <footer className="landing-footer">
-        <span>Finance Manager · PKR household planning</span>
+        <span>Ravani · Monthly Money Manager</span>
         <span>
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·{" "}
           <a href="/data-deletion">Data deletion</a>

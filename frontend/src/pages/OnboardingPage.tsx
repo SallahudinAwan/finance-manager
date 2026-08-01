@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { postJson } from "../api/client";
+import { RavaniMark } from "../components/RavaniMark";
 import type { Session } from "../types";
 
 type Income = { name: string; amount: string };
@@ -75,7 +76,7 @@ export function OnboardingPage({ session }: { session: Session }) {
     <div className="onboarding">
       <aside>
         <a className="landing-brand" href="/">
-          <span><Landmark size={19} /></span> Finance Manager
+          <span><RavaniMark size={19} /></span> Ravani
         </a>
         <div className="onboarding-intro">
           <span>Welcome, {session.user.name.split(" ")[0]}</span>

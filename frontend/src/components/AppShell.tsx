@@ -3,7 +3,6 @@ import {
   ChartNoAxesCombined,
   ChevronLeft,
   ChevronRight,
-  Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -21,6 +20,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { Session } from "../types";
 import { GuidedTour } from "./GuidedTour";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { RavaniMark } from "./RavaniMark";
 
 const nav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
@@ -50,10 +50,10 @@ export function AppShell({ session }: { session: Session }) {
       <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
         <div className="brand" data-tour="brand">
           <span className="brand-mark">
-            <Landmark size={20} />
+            <RavaniMark size={20} />
           </span>
           <span className="brand-copy">
-            <strong>Finance Manager</strong>
+            <strong>Ravani</strong>
             <small>{session.household?.name}</small>
           </span>
           <button
