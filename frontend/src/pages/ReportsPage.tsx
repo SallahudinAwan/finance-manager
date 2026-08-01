@@ -62,6 +62,7 @@ export function ReportsPage() {
         }
       />
 
+      <div data-tour="reports">
       {rows.length ? (
         <>
           <section className="report-highlights">
@@ -158,6 +159,7 @@ export function ReportsPage() {
           description="Your income, expenses, cash flow, and savings trends will appear here automatically."
         />
       )}
+      </div>
     </>
   );
 }

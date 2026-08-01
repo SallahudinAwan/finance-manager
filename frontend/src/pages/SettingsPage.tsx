@@ -92,7 +92,7 @@ export function SettingsPage() {
         description="Opening balances, recurring items, invitations, and reconciliation live here."
       />
 
-      <section className="settings-grid">
+      <section className="settings-grid" data-tour="settings-bank">
         <article className="panel setting-card">
           <span className="setting-icon">
             <Banknote size={21} />
@@ -143,7 +143,7 @@ export function SettingsPage() {
 
       {session.is_owner ? (
         <>
-          <section className="panel">
+          <section className="panel" data-tour="settings-recurring">
             <div className="panel-heading">
               <div>
                 <span className="panel-kicker">Monthly generator</span>

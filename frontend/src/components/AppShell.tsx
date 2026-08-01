@@ -41,6 +41,9 @@ export function AppShell({ session }: { session: Session }) {
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
   useEffect(() => {
+    if (tourOpen) setCollapsed(false);
+  }, [tourOpen]);
+  useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
     localStorage.setItem("theme", dark ? "dark" : "light");
   }, [dark]);
@@ -73,8 +76,12 @@ export function AppShell({ session }: { session: Session }) {
                     : item.to === "/app/savings"
                       ? "savings"
                       : item.to === "/app/reports"
-                        ? "reports"
-                        : undefined
+                        ? "reports-nav"
+                        : item.to === "/app/notifications"
+                          ? "notifications-nav"
+                          : item.to === "/app/settings"
+                            ? "settings-nav"
+                            : "account"
               }
             >
               <item.icon size={19} />
@@ -120,32 +127,38 @@ export function AppShell({ session }: { session: Session }) {
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
           <div className="topbar-spacer" />
-          <button
-            className="theme-button"
-            type="button"
-            aria-label="Start guided tour"
-            title="Start guided tour"
-            onClick={() => setTourOpen(true)}
-          >
-            <CircleHelp size={18} />
-          </button>
-          <span data-tour="language">
-            <LanguageSwitcher />
-          </span>
-          <span className="currency-pill">PKR · Karachi</span>
-          <button
-            className="theme-button"
-            onClick={() => setDark((value) => !value)}
-            aria-label="Toggle color theme"
-          >
-            {dark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          <div className="topbar-preferences" data-tour="preferences">
+            <button
+              className="theme-button"
+              type="button"
+              aria-label="Start guided tour"
+              title="Start guided tour"
+              onClick={() => setTourOpen(true)}
+            >
+              <CircleHelp size={18} />
+            </button>
+            <span data-tour="language">
+              <LanguageSwitcher />
+            </span>
+            <span className="currency-pill">PKR · Karachi</span>
+            <button
+              className="theme-button"
+              onClick={() => setDark((value) => !value)}
+              aria-label="Toggle color theme"
+            >
+              {dark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
         </div>
         <div className="page-container">
           <Outlet context={{ session }} />
         </div>
       </main>
-      <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
+      <GuidedTour
+        open={tourOpen}
+        isOwner={session.is_owner}
+        onClose={() => setTourOpen(false)}
+      />
     </div>
   );
 }

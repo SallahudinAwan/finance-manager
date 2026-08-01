@@ -108,7 +108,7 @@ export function DashboardPage() {
         }
       />
 
-      <section className="metric-grid">
+      <section className="metric-grid" data-tour="dashboard-summary">
         <MetricCard
           label="Safe to spend"
           value={data.period.safe_to_spend}
@@ -151,7 +151,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      <section className="dashboard-grid">
+      <section className="dashboard-grid" data-tour="dashboard-insights">
         <article className="panel chart-panel">
           <div className="panel-heading">
             <div>

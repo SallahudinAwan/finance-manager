@@ -438,6 +438,12 @@ p {
   display: inline-flex;
 }
 
+.topbar-preferences {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .guided-tour {
   position: fixed;
   z-index: 200;
@@ -481,8 +487,10 @@ p {
   z-index: 2;
   right: 24px;
   bottom: 24px;
-  width: min(390px, calc(100vw - 32px));
-  padding: 22px;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  padding: 24px;
+  overflow-y: auto;
   pointer-events: auto;
   background: var(--surface-raised);
   border: 1px solid color-mix(in srgb, var(--indigo) 28%, var(--border));
@@ -491,10 +499,24 @@ p {
   animation: tourCardIn 220ms ease;
 }
 
+.tour-card.at-top {
+  top: 24px;
+  bottom: auto;
+}
+
+.tour-card.centered,
+html[dir="rtl"] .tour-card.centered {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
 @keyframes tourCardIn {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.98);
+    filter: saturate(0.8);
   }
 }
 
@@ -524,6 +546,19 @@ p {
   text-transform: uppercase;
 }
 
+.tour-step-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.tour-step-meta > span:last-child {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
 .tour-card h2 {
   margin: 6px 0 8px;
   font-size: 21px;
@@ -538,21 +573,48 @@ p {
   line-height: 1.7;
 }
 
-.tour-progress {
+.tour-details {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 5px;
-  margin: 20px 0;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.tour-progress span {
-  height: 4px;
+.tour-details li {
+  position: relative;
+  padding-inline-start: 18px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.tour-details li::before {
+  position: absolute;
+  top: 0.55em;
+  inset-inline-start: 2px;
+  width: 6px;
+  height: 6px;
+  content: "";
+  background: var(--emerald);
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--emerald) 12%, transparent);
+}
+
+.tour-progress {
+  height: 5px;
+  margin: 20px 0;
+  overflow: hidden;
   background: var(--border);
   border-radius: 999px;
 }
 
-.tour-progress span.active {
-  background: var(--indigo);
+.tour-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--indigo), var(--emerald));
+  border-radius: 999px;
+  transition: width 220ms ease;
 }
 
 .tour-actions {
@@ -3275,7 +3337,23 @@ html[dir="rtl"] .payment-expectation-grid > div:last-child {
     width: auto;
     padding: 19px;
   }
+  .tour-card.at-top,
+  html[dir="rtl"] .tour-card.at-top {
+    top: 16px;
+    bottom: auto;
+  }
+  .tour-card.centered,
+  html[dir="rtl"] .tour-card.centered {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: calc(100vw - 32px);
+    transform: translate(-50%, -50%);
+  }
   .tour-card h2 { font-size: 19px; }
+  .tour-details { gap: 6px; }
+  .topbar-preferences { gap: 7px; }
   .page-container { padding: 22px 14px 42px; }
   .page-header { align-items: stretch; flex-direction: column; gap: 14px; }
   .page-actions { width: 100%; }

@@ -75,7 +75,7 @@ export function SavingsPage() {
         description="Record external savings deposits, protect them with goals, and keep your calculated bank balance accurate."
         actions={
           session.is_owner ? (
-            <>
+            <div className="inline-actions" data-tour="savings-actions">
               <Modal
                 title="Move savings"
                 description="Contributions increase the calculated bank, withdrawals decrease it, and transfers stay bank-neutral."
@@ -114,7 +114,7 @@ export function SavingsPage() {
                   }}
                 />
               </Modal>
-            </>
+            </div>
           ) : undefined
         }
       />
@@ -137,7 +137,7 @@ export function SavingsPage() {
         )}
       </Modal>
 
-      <section className="savings-hero">
+      <section className="savings-hero" data-tour="savings-overview">
         <div>
           <span>Total reserved</span>
           <strong>{formatPkr(total)}</strong>
@@ -148,58 +148,60 @@ export function SavingsPage() {
         </div>
       </section>
 
-      {goals.data.results.length ? (
-        <section className="goal-card-grid">
-          {goals.data.results.map((goal, index) => {
-            const target = money(goal.target_amount);
-            const balance = money(goal.balance);
-            const percentage = target ? (balance / target) * 100 : 0;
-            return (
-              <article className="goal-card" key={goal.id}>
-                <div className="goal-card-top">
-                  <span className={`goal-art art-${(index % 4) + 1}`}>
-                    {index % 2 ? <Target size={21} /> : <TrendingUp size={21} />}
-                  </span>
-                  <div className="goal-card-actions">
-                    <span className={`active-pill ${goal.active ? "" : "inactive"}`}>
-                      {goal.active ? "Active" : "Inactive"}
+      <div data-tour="savings-buckets">
+        {goals.data.results.length ? (
+          <section className="goal-card-grid">
+            {goals.data.results.map((goal, index) => {
+              const target = money(goal.target_amount);
+              const balance = money(goal.balance);
+              const percentage = target ? (balance / target) * 100 : 0;
+              return (
+                <article className="goal-card" key={goal.id}>
+                  <div className="goal-card-top">
+                    <span className={`goal-art art-${(index % 4) + 1}`}>
+                      {index % 2 ? <Target size={21} /> : <TrendingUp size={21} />}
                     </span>
-                    {session.is_owner && (
-                      <button
-                        className="icon-button"
-                        type="button"
-                        aria-label={`Edit ${goal.name}`}
-                        onClick={() => setEditingGoal(goal)}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <h2>{goal.name}</h2>
-                <strong>{formatPkr(goal.balance)}</strong>
-                {goal.target_amount ? (
-                  <>
-                    <ProgressBar value={balance} max={target} />
-                    <div className="goal-card-meta">
-                      <span>{Math.min(percentage, 100).toFixed(0)}% complete</span>
-                      <span>{formatPkr(Math.max(target - balance, 0))} left</span>
+                    <div className="goal-card-actions">
+                      <span className={`active-pill ${goal.active ? "" : "inactive"}`}>
+                        {goal.active ? "Active" : "Inactive"}
+                      </span>
+                      {session.is_owner && (
+                        <button
+                          className="icon-button"
+                          type="button"
+                          aria-label={`Edit ${goal.name}`}
+                          onClick={() => setEditingGoal(goal)}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      )}
                     </div>
-                  </>
-                ) : (
-                  <p className="goal-no-target">Open-ended savings · no target required</p>
-                )}
-              </article>
-            );
-          })}
-        </section>
-      ) : (
-        <EmptyState
-          icon={<PiggyBank size={24} />}
-          title="Create your first savings envelope"
-          description="Goals can represent emergency savings, gifts, a baby fund, travel, or anything important."
-        />
-      )}
+                  </div>
+                  <h2>{goal.name}</h2>
+                  <strong>{formatPkr(goal.balance)}</strong>
+                  {goal.target_amount ? (
+                    <>
+                      <ProgressBar value={balance} max={target} />
+                      <div className="goal-card-meta">
+                        <span>{Math.min(percentage, 100).toFixed(0)}% complete</span>
+                        <span>{formatPkr(Math.max(target - balance, 0))} left</span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="goal-no-target">Open-ended savings · no target required</p>
+                  )}
+                </article>
+              );
+            })}
+          </section>
+        ) : (
+          <EmptyState
+            icon={<PiggyBank size={24} />}
+            title="Create your first savings envelope"
+            description="Goals can represent emergency savings, gifts, a baby fund, travel, or anything important."
+          />
+        )}
+      </div>
 
       <SavingsTransactionHistory
         goals={goals.data.results}
@@ -246,7 +248,7 @@ export function SavingsTransactionHistory({
   };
 
   return (
-    <section className="panel savings-ledger-panel">
+    <section className="panel savings-ledger-panel" data-tour="savings-ledger">
       <div className="panel-heading savings-ledger-heading">
         <div>
           <span className="panel-kicker">Savings ledger</span>
