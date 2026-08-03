@@ -26,9 +26,8 @@ import {
   postJson,
 } from "../api/client";
 import { Modal } from "../components/Modal";
-import { MonthlyMetricGrid } from "../components/MonthlyMetricGrid";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
-import type { Dashboard, Month, Paginated, RolloverPreview, SavingsGoal, Session } from "../types";
+import type { Month, Paginated, RolloverPreview, SavingsGoal, Session } from "../types";
 
 interface PersonalExpense {
   id: number;
@@ -72,12 +71,6 @@ export function MonthPage() {
     queryKey: ["month", label ?? "current"],
     queryFn: () =>
       api<Month>(label ? `/months/by-label/?month=${encodeURIComponent(label)}` : "/months/current/"),
-  });
-  const monthMetrics = useQuery({
-    queryKey: ["dashboard", month.data?.label],
-    queryFn: () =>
-      api<Dashboard>(`/dashboard/?month=${encodeURIComponent(month.data!.label)}`),
-    enabled: Boolean(month.data),
   });
   const months = useQuery({
     queryKey: ["months"],
@@ -173,16 +166,6 @@ export function MonthPage() {
 
   return (
     <>
-      {monthMetrics.data ? (
-        <MonthlyMetricGrid data={monthMetrics.data} />
-      ) : monthMetrics.isLoading ? (
-        <section className="metric-grid" aria-label="Loading monthly financial summary">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} height={135} />
-          ))}
-        </section>
-      ) : null}
-
       <PageHeader
         eyebrow="Monthly workspace"
         title={new Date(data.year, data.month - 1).toLocaleDateString(appLocale(), {

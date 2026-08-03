@@ -3,6 +3,9 @@ import {
   ArrowRight,
   CalendarPlus,
   CircleAlert,
+  Landmark,
+  PiggyBank,
+  ReceiptText,
   ShieldCheck,
   Sparkles,
   Wallet,
@@ -18,8 +21,7 @@ import {
   YAxis,
 } from "recharts";
 import { ApiError, api, appLocale, formatPkr, money } from "../api/client";
-import { MonthlyMetricGrid } from "../components/MonthlyMetricGrid";
-import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
+import { EmptyState, ErrorPanel, MetricCard, PageHeader, ProgressBar, Skeleton } from "../components/ui";
 import type { Dashboard, Trend } from "../types";
 
 export function DashboardPage() {
@@ -106,7 +108,35 @@ export function DashboardPage() {
         }
       />
 
-      <MonthlyMetricGrid data={data} dataTour="dashboard-summary" />
+      <section className="metric-grid" data-tour="dashboard-summary">
+        <MetricCard
+          label="Safe to spend"
+          value={data.period.safe_to_spend}
+          hint="After planned bills and savings"
+          icon={<ShieldCheck size={22} />}
+          tone="emerald"
+        />
+        <MetricCard
+          label="Calculated bank"
+          value={data.bank.calculated_balance}
+          hint="Opening balance plus recorded cash flow"
+          icon={<Landmark size={22} />}
+        />
+        <MetricCard
+          label="House balance"
+          value={data.period.house_balance}
+          hint={`${formatPkr(data.period.household_paid)} paid so far`}
+          icon={<ReceiptText size={22} />}
+          tone="amber"
+        />
+        <MetricCard
+          label="Savings reserved"
+          value={data.savings.total}
+          hint={`${Math.max(0, savingsProgress).toFixed(0)}% of this month’s target`}
+          icon={<PiggyBank size={22} />}
+          tone="slate"
+        />
+      </section>
 
       {data.bank.variance !== null && money(data.bank.variance) !== 0 && (
         <div className="callout warning">
