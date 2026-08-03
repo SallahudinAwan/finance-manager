@@ -828,6 +828,11 @@ export interface components {
             savings_reminder_day?: number;
             readonly onboarding_complete: boolean;
         };
+        IncomeReceipt: {
+            /** Format: date */
+            date?: string;
+            savings_goal?: number | null;
+        };
         IncomeSetup: {
             name: string;
             /** Format: double */
@@ -878,7 +883,6 @@ export interface components {
         MonthRolloverInput: {
             bill_allocations?: components["schemas"]["BillRolloverInput"][];
             safe_to_spend?: components["schemas"]["SafeToSpendRolloverInput"] | null;
-            fixed_savings_goal?: number | null;
         };
         MonthlyIncomePlan: {
             readonly id: number;
@@ -897,6 +901,7 @@ export interface components {
             readonly label: string;
             /** Format: decimal */
             savings_target?: string;
+            readonly fixed_savings_allocated: boolean;
             /** Format: double */
             readonly safe_to_spend_carryover: number;
             readonly income_plans: components["schemas"]["MonthlyIncomePlan"][];
@@ -1908,20 +1913,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["MonthlyIncomePlan"];
-                "application/x-www-form-urlencoded": components["schemas"]["MonthlyIncomePlan"];
-                "multipart/form-data": components["schemas"]["MonthlyIncomePlan"];
+                "application/json": components["schemas"]["IncomeReceipt"];
+                "application/x-www-form-urlencoded": components["schemas"]["IncomeReceipt"];
+                "multipart/form-data": components["schemas"]["IncomeReceipt"];
             };
         };
         responses: {
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MonthlyIncomePlan"];
+                    "application/json": components["schemas"]["LedgerEntry"];
                 };
             };
         };

@@ -72,6 +72,7 @@ export interface Month {
   month: number;
   label: string;
   savings_target: Money;
+  fixed_savings_allocated: boolean;
   safe_to_spend_carryover: Money;
   income_plans: IncomePlan[];
   planned_expenses: PlannedExpense[];
@@ -85,7 +86,6 @@ export interface RolloverPreview {
     remaining_amount: Money;
   }>;
   safe_to_spend: Money;
-  fixed_savings_target: Money;
 }
 
 export interface SavingsGoal {

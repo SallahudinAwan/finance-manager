@@ -451,28 +451,6 @@ def rollover_available_safe_to_spend(period: MonthlyPeriod) -> Decimal:
 
 
 def rollover_preview(household: Household, year: int, month: int) -> dict[str, Any]:
-    destination = household.periods.filter(
-        year=year,
-        month=month,
-        is_deleted=False,
-    ).first()
-    has_another_active_month = (
-        household.periods.filter(is_deleted=False)
-        .exclude(pk=destination.pk if destination else None)
-        .exists()
-    )
-    fixed_savings_target = (
-        (destination.savings_target if destination else household.monthly_savings_target)
-        if has_another_active_month
-        else ZERO
-    )
-    if (
-        destination
-        and destination.outgoing_rollover_allocations.filter(
-            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
-        ).exists()
-    ):
-        fixed_savings_target = ZERO
     previous_year, previous_month = _adjacent_month(year, month, -1)
     source = household.periods.filter(
         year=previous_year,
@@ -484,7 +462,6 @@ def rollover_preview(household: Household, year: int, month: int) -> dict[str, A
             "source_month": None,
             "unpaid_expenses": [],
             "safe_to_spend": ZERO,
-            "fixed_savings_target": fixed_savings_target,
         }
 
     completed_keys = set(source.outgoing_rollover_allocations.values_list("source_key", flat=True))
@@ -506,12 +483,98 @@ def rollover_preview(household: Household, year: int, month: int) -> dict[str, A
         "source_month": source.label,
         "unpaid_expenses": unpaid_expenses,
         "safe_to_spend": safe_to_spend,
-        "fixed_savings_target": fixed_savings_target,
     }
 
 
 class RolloverValidationError(ValueError):
     pass
+
+
+class IncomeReceiptValidationError(ValueError):
+    pass
+
+
+@transaction.atomic
+def receive_planned_income(
+    planned_income: MonthlyIncomePlan,
+    actor: Any,
+    *,
+    receipt_date: date,
+    savings_goal: SavingsGoal | None,
+) -> LedgerEntry:
+    """Receive the unreceived plan amount and reserve fixed savings exactly once."""
+    planned = MonthlyIncomePlan.objects.select_for_update().get(pk=planned_income.pk)
+    period = (
+        MonthlyPeriod.objects.select_for_update()
+        .select_related("household")
+        .get(pk=planned.period_id)
+    )
+    household = period.household
+    if (receipt_date.year, receipt_date.month) != (period.year, period.month):
+        raise IncomeReceiptValidationError("Income date must be inside the selected month.")
+
+    received = planned.ledger_entries.aggregate(
+        total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD))
+    )["total"]
+    amount = planned.planned_amount - received
+    if amount <= ZERO:
+        raise IncomeReceiptValidationError("This income has already been received in full.")
+
+    fixed_allocation_exists = period.outgoing_rollover_allocations.filter(
+        source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
+    ).exists()
+    if period.savings_target > ZERO and not fixed_allocation_exists:
+        if (
+            savings_goal is None
+            or savings_goal.household_id != household.id
+            or not savings_goal.active
+        ):
+            raise IncomeReceiptValidationError(
+                "Choose an active savings goal for this month's fixed savings."
+            )
+
+    entry = LedgerEntry.objects.create(
+        household=household,
+        period=period,
+        created_by=actor,
+        planned_income=planned,
+        entry_type=LedgerEntry.EntryType.INCOME,
+        direction=LedgerEntry.Direction.CREDIT,
+        date=receipt_date,
+        amount=amount,
+        description=planned.name,
+    )
+
+    if period.savings_target > ZERO and not fixed_allocation_exists:
+        allocation = RolloverAllocation(
+            household=household,
+            source_period=period,
+            destination_period=period,
+            destination_goal=savings_goal,
+            created_by=actor,
+            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS,
+            source_key="fixed_savings",
+            action=RolloverAllocation.Action.SAVINGS,
+            amount=period.savings_target,
+        )
+        allocation.full_clean()
+        allocation.save()
+        movement = SavingsMovement(
+            household=household,
+            period=period,
+            created_by=actor,
+            rollover_allocation=allocation,
+            kind=SavingsMovement.Kind.ALLOCATION,
+            destination_goal=savings_goal,
+            date=receipt_date,
+            amount=period.savings_target,
+            notes=f"Fixed monthly savings allocated when {planned.name} was received",
+        )
+        movement.full_clean()
+        movement.save()
+
+    refresh_month_rollovers(household, period)
+    return entry
 
 
 @transaction.atomic
@@ -522,7 +585,6 @@ def apply_month_rollovers(
     *,
     bill_allocations: list[dict[str, int]],
     safe_to_spend: dict[str, Any] | None,
-    fixed_savings_goal: int | None,
 ) -> None:
     active_goals = {goal.id: goal for goal in household.savings_goals.filter(active=True)}
 
@@ -531,43 +593,6 @@ def apply_month_rollovers(
         if goal is None:
             raise RolloverValidationError("Choose an active savings goal in this household.")
         return goal
-
-    has_another_active_month = (
-        household.periods.filter(is_deleted=False).exclude(pk=destination.pk).exists()
-    )
-    if (
-        fixed_savings_goal
-        and has_another_active_month
-        and destination.savings_target > ZERO
-        and not destination.outgoing_rollover_allocations.filter(
-            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
-        ).exists()
-    ):
-        fixed_goal = goal_for(fixed_savings_goal)
-        fixed_allocation = RolloverAllocation(
-            household=household,
-            source_period=destination,
-            destination_period=destination,
-            destination_goal=fixed_goal,
-            created_by=actor,
-            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS,
-            source_key="fixed_savings",
-            action=RolloverAllocation.Action.SAVINGS,
-            amount=destination.savings_target,
-        )
-        fixed_allocation.full_clean()
-        fixed_allocation.save()
-        SavingsMovement.objects.create(
-            household=household,
-            period=destination,
-            created_by=actor,
-            rollover_allocation=fixed_allocation,
-            kind=SavingsMovement.Kind.ALLOCATION,
-            destination_goal=fixed_goal,
-            date=date(destination.year, destination.month, 1),
-            amount=fixed_allocation.amount,
-            notes=f"Fixed monthly savings allocated for {destination.label}",
-        )
 
     previous_year, previous_month = _adjacent_month(destination.year, destination.month, -1)
     source = household.periods.filter(
@@ -679,7 +704,11 @@ def refresh_month_rollovers(household: Household, from_period: MonthlyPeriod) ->
             if allocation.source_kind == RolloverAllocation.SourceKind.HOUSEHOLD_REMAINDER:
                 amount = allocation.source_expense.remaining_amount
             elif allocation.source_kind == RolloverAllocation.SourceKind.FIXED_SAVINGS:
-                amount = period.savings_target
+                has_received_income = period.ledger_entries.filter(
+                    entry_type=LedgerEntry.EntryType.INCOME,
+                    direction=LedgerEntry.Direction.CREDIT,
+                ).exists()
+                amount = period.savings_target if has_received_income else ZERO
             else:
                 amount = max(rollover_available_safe_to_spend(period), ZERO)
             if amount <= ZERO:

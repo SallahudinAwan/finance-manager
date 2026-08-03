@@ -66,6 +66,7 @@ from .serializers import (
     UserSerializer,
 )
 from .services import (
+    IncomeReceiptValidationError,
     RolloverValidationError,
     apply_month_rollovers,
     audit_export,
@@ -76,6 +77,7 @@ from .services import (
     generate_month,
     is_owner,
     period_summary,
+    receive_planned_income,
     reconcile_bank,
     refresh_expense_carryovers,
     refresh_month_rollovers,
@@ -386,7 +388,6 @@ class MonthViewSet(
                         request.user,
                         bill_allocations=rollover_data["bill_allocations"],
                         safe_to_spend=rollover_data.get("safe_to_spend"),
-                        fixed_savings_goal=rollover_data.get("fixed_savings_goal"),
                     )
         except RolloverValidationError as exc:
             return Response({"rollover": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -495,33 +496,24 @@ class IncomePlanViewSet(
 
         return MonthlyIncomePlanSerializer
 
+    @extend_schema(request=IncomeReceiptSerializer, responses={201: LedgerEntrySerializer})
     @action(detail=True, methods=["post"], permission_classes=[IsHouseholdOwner])
     def receive(self, request, pk=None) -> Response:
         planned = self.get_object()
-        serializer = IncomeReceiptSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        receipt_date = serializer.validated_data["date"]
-        if (receipt_date.year, receipt_date.month) != (
-            planned.period.year,
-            planned.period.month,
-        ):
-            return Response(
-                {"date": "Income date must be inside the selected month."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        entry = LedgerEntry.objects.create(
-            household=planned.period.household,
-            period=planned.period,
-            created_by=request.user,
-            planned_income=planned,
-            entry_type=LedgerEntry.EntryType.INCOME,
-            direction=LedgerEntry.Direction.CREDIT,
-            date=receipt_date,
-            amount=serializer.validated_data["amount"],
-            description=planned.name,
-            notes=serializer.validated_data.get("notes", ""),
+        serializer = IncomeReceiptSerializer(
+            data=request.data,
+            context={"request": request, "planned_income": planned},
         )
-        refresh_month_rollovers(planned.period.household, planned.period)
+        serializer.is_valid(raise_exception=True)
+        try:
+            entry = receive_planned_income(
+                planned,
+                request.user,
+                receipt_date=serializer.validated_data["date"],
+                savings_goal=serializer.validated_data.get("savings_goal"),
+            )
+        except IncomeReceiptValidationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(LedgerEntrySerializer(entry).data, status=status.HTTP_201_CREATED)
 
 

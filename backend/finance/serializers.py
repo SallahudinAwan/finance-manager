@@ -161,6 +161,7 @@ class PlannedExpenseSerializer(serializers.ModelSerializer):
 class MonthlyPeriodSerializer(serializers.ModelSerializer):
     label = serializers.CharField(read_only=True)
     safe_to_spend_carryover = serializers.SerializerMethodField()
+    fixed_savings_allocated = serializers.SerializerMethodField()
     income_plans = MonthlyIncomePlanSerializer(many=True, read_only=True)
     planned_expenses = PlannedExpenseSerializer(many=True, read_only=True)
 
@@ -172,6 +173,7 @@ class MonthlyPeriodSerializer(serializers.ModelSerializer):
             "month",
             "label",
             "savings_target",
+            "fixed_savings_allocated",
             "safe_to_spend_carryover",
             "income_plans",
             "planned_expenses",
@@ -181,6 +183,11 @@ class MonthlyPeriodSerializer(serializers.ModelSerializer):
 
     def get_safe_to_spend_carryover(self, obj: MonthlyPeriod) -> Decimal:
         return period_safe_to_spend_carryover(obj)
+
+    def get_fixed_savings_allocated(self, obj: MonthlyPeriod) -> bool:
+        return obj.outgoing_rollover_allocations.filter(
+            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
+        ).exists()
 
 
 class LedgerEntrySerializer(serializers.ModelSerializer):
@@ -281,9 +288,31 @@ class PaymentSerializer(serializers.Serializer):
 
 
 class IncomeReceiptSerializer(serializers.Serializer):
-    amount = MoneyField(min_value=Decimal("0.01"))
     date = serializers.DateField(default=date.today)
-    notes = serializers.CharField(required=False, allow_blank=True)
+    savings_goal = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        planned: MonthlyIncomePlan = self.context["planned_income"]
+        existing_allocation = planned.period.outgoing_rollover_allocations.filter(
+            source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS
+        ).exists()
+        goal_id = attrs.get("savings_goal")
+        if planned.period.savings_target > 0 and not existing_allocation and not goal_id:
+            raise serializers.ValidationError(
+                {"savings_goal": "Choose a savings goal for this month's fixed savings."}
+            )
+        if goal_id:
+            goal = SavingsGoal.objects.filter(
+                id=goal_id,
+                household=planned.period.household,
+                active=True,
+            ).first()
+            if goal is None:
+                raise serializers.ValidationError(
+                    {"savings_goal": "Choose an active savings goal in this household."}
+                )
+            attrs["savings_goal"] = goal
+        return attrs
 
 
 class PersonalExpenseSerializer(serializers.ModelSerializer):
@@ -488,7 +517,6 @@ class SafeToSpendRolloverInputSerializer(serializers.Serializer):
 class MonthRolloverInputSerializer(serializers.Serializer):
     bill_allocations = BillRolloverInputSerializer(many=True, required=False, default=list)
     safe_to_spend = SafeToSpendRolloverInputSerializer(required=False, allow_null=True)
-    fixed_savings_goal = serializers.IntegerField(min_value=1, required=False, allow_null=True)
 
 
 class MonthGenerateInputSerializer(serializers.Serializer):
@@ -507,7 +535,6 @@ class RolloverPreviewSerializer(serializers.Serializer):
     source_month = serializers.CharField(allow_null=True)
     unpaid_expenses = RolloverExpensePreviewSerializer(many=True)
     safe_to_spend = MoneyField()
-    fixed_savings_target = MoneyField()
 
 
 class ReconciliationInputSerializer(serializers.Serializer):

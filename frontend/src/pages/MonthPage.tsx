@@ -26,7 +26,6 @@ import {
   postJson,
 } from "../api/client";
 import { Modal } from "../components/Modal";
-import { SavingsMovementForm } from "../components/SavingsMovementForm";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
 import type { Month, Paginated, RolloverPreview, SavingsGoal, Session } from "../types";
 
@@ -63,7 +62,6 @@ export function MonthPage() {
   const [incomeTarget, setIncomeTarget] = useState<number | null>(null);
   const [addMonthOpen, setAddMonthOpen] = useState(false);
   const [deleteMonthOpen, setDeleteMonthOpen] = useState(false);
-  const [savingsOpen, setSavingsOpen] = useState(false);
   const [personalOpen, setPersonalOpen] = useState(false);
   const [personalEdit, setPersonalEdit] = useState<PersonalExpense | null>(null);
   const [sharedEdit, setSharedEdit] = useState<LedgerEntry | null>(null);
@@ -164,6 +162,7 @@ export function MonthPage() {
   const paymentExpense = data.planned_expenses.find(
     (expense) => expense.id === paymentTarget,
   );
+  const incomePlan = data.income_plans.find((income) => income.id === incomeTarget);
 
   return (
     <>
@@ -313,17 +312,7 @@ export function MonthPage() {
         <div>
           <span>Savings target</span>
           <strong>{formatPkr(data.savings_target)}</strong>
-          {session.is_owner ? (
-            <button
-              className="table-action summary-action"
-              onClick={() => setSavingsOpen(true)}
-              disabled={!goals.data?.results.length}
-            >
-              <ArrowRightLeft size={14} /> Allocate for this month
-            </button>
-          ) : (
-            <small>Reserved before personal spending</small>
-          )}
+          <small>Reserved automatically when income is received</small>
         </div>
       </section>
 
@@ -350,7 +339,7 @@ export function MonthPage() {
                       {formatPkr(income.received_amount)} of {formatPkr(income.planned_amount)}
                     </small>
                   </div>
-                  {session.is_owner && (
+                  {session.is_owner && !complete && (
                     <button
                       className="button small secondary"
                       onClick={() => setIncomeTarget(income.id)}
@@ -571,31 +560,6 @@ export function MonthPage() {
       </section>
 
       <Modal
-        title={`Move savings for ${new Date(data.year, data.month - 1).toLocaleDateString(
-          appLocale(),
-          { month: "long", year: "numeric" },
-        )}`}
-        description="This records a virtual allocation for the selected month without creating another bank transaction."
-        trigger={<span />}
-        open={savingsOpen}
-        onOpenChange={setSavingsOpen}
-      >
-        {goals.data?.results.length ? (
-          <SavingsMovementForm
-            goals={goals.data.results}
-            period={data.id}
-            defaultDate={`${data.label}-01`}
-            onSaved={async () => {
-              setSavingsOpen(false);
-              await refresh();
-            }}
-          />
-        ) : (
-          <p className="form-error">Create a savings goal before allocating savings.</p>
-        )}
-      </Modal>
-
-      <Modal
         title="Record a household payment"
         description="Partial payments are supported and the remaining balance updates automatically."
         trigger={<span />}
@@ -681,16 +645,19 @@ export function MonthPage() {
 
       <Modal
         title="Record received income"
-        description="Record the actual amount that reached your bank."
+        description="Confirm the receiving date and reserve this month’s fixed savings."
         trigger={<span />}
         open={incomeTarget !== null}
         onOpenChange={(open) => !open && setIncomeTarget(null)}
       >
-        {incomeTarget && (
-          <MoneyMovementForm
-            label="Amount received"
+        {incomePlan && (
+          <IncomeReceiptForm
+            income={incomePlan}
+            savingsTarget={data.savings_target}
+            fixedSavingsAllocated={data.fixed_savings_allocated}
+            goals={goals.data?.results ?? []}
             defaultDate={`${data.label}-01`}
-            onSubmit={(body) => postJson(`/income-plans/${incomeTarget}/receive/`, body)}
+            onSubmit={(body) => postJson(`/income-plans/${incomePlan.id}/receive/`, body)}
             onSaved={async () => {
               setIncomeTarget(null);
               await refresh();
@@ -721,7 +688,6 @@ export function AddMonthForm({
   const [billGoals, setBillGoals] = useState<Record<number, string>>({});
   const [safeAction, setSafeAction] = useState<"" | "carryover" | "savings">("");
   const [safeGoal, setSafeGoal] = useState("");
-  const [fixedSavingsGoal, setFixedSavingsGoal] = useState("");
   const activeGoals = goals.filter((goal) => goal.active);
   const createMutation = useMutation({
     mutationFn: (rollover: unknown | null) => {
@@ -743,7 +709,6 @@ export function AddMonthForm({
       if (
         !result.unpaid_expenses.length
         && money(result.safe_to_spend) <= 0
-        && money(result.fixed_savings_target) <= 0
       ) {
         createMutation.mutate(null);
         return;
@@ -752,13 +717,11 @@ export function AddMonthForm({
       setBillGoals({});
       setSafeAction("");
       setSafeGoal("");
-      setFixedSavingsGoal("");
     },
   });
   const rolloverReady = Boolean(
     preview
       && preview.unpaid_expenses.every((expense) => billGoals[expense.id])
-      && (money(preview.fixed_savings_target) <= 0 || fixedSavingsGoal)
       && (money(preview.safe_to_spend) <= 0
         || (safeAction === "carryover")
         || (safeAction === "savings" && safeGoal)),
@@ -778,8 +741,6 @@ export function AddMonthForm({
               destination_goal: safeAction === "savings" ? Number(safeGoal) : null,
             }
           : null,
-      fixed_savings_goal:
-        money(preview.fixed_savings_target) > 0 ? Number(fixedSavingsGoal) : null,
     });
   };
 
@@ -817,19 +778,6 @@ export function AddMonthForm({
             <strong>Give every reserved amount a destination</strong>
             <p>These are internal allocations. Your calculated bank balance will not change.</p>
           </div>
-          {money(preview.fixed_savings_target) > 0 && (
-            <div className="rollover-group fixed-savings-allocation">
-              <h3>Fixed monthly savings</h3>
-              <p>{formatPkr(preview.fixed_savings_target)} will be reserved for the new month. Choose the savings goal that should receive it.</p>
-              <label>
-                Savings goal for fixed savings
-                <select required value={fixedSavingsGoal} onChange={(event) => setFixedSavingsGoal(event.target.value)}>
-                  <option value="">Choose savings goal</option>
-                  {activeGoals.map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}
-                </select>
-              </label>
-            </div>
-          )}
           {preview.unpaid_expenses.length > 0 && (
             <div className="rollover-group">
               <h3>Unpaid household amounts</h3>
@@ -872,8 +820,8 @@ export function AddMonthForm({
               )}
             </div>
           )}
-          {!activeGoals.length && (preview.unpaid_expenses.length > 0 || money(preview.fixed_savings_target) > 0) && (
-            <p className="form-error">Create or reactivate a savings goal before allocating fixed savings or unpaid household amounts.</p>
+          {!activeGoals.length && preview.unpaid_expenses.length > 0 && (
+            <p className="form-error">Create or reactivate a savings goal before allocating unpaid household amounts.</p>
           )}
           <button type="button" className="button secondary small rollover-back" onClick={() => setPreview(null)}>
             <ArrowLeft size={15} /> Change month
@@ -1201,6 +1149,112 @@ function MoneyMovementForm({
       {mutation.isError && <p className="form-error">Please check the amount and try again.</p>}
       <button className="button primary full" disabled={mutation.isPending}>
         {mutation.isPending ? "Saving…" : "Save transaction"}
+      </button>
+    </form>
+  );
+}
+
+export function IncomeReceiptForm({
+  income,
+  savingsTarget,
+  fixedSavingsAllocated,
+  goals,
+  defaultDate,
+  onSubmit,
+  onSaved,
+}: {
+  income: Month["income_plans"][number];
+  savingsTarget: Month["savings_target"];
+  fixedSavingsAllocated: boolean;
+  goals: SavingsGoal[];
+  defaultDate: string;
+  onSubmit: (body: unknown) => Promise<unknown>;
+  onSaved: () => Promise<void>;
+}) {
+  const [dateValue, setDateValue] = useState(defaultDate);
+  const [savingsGoal, setSavingsGoal] = useState("");
+  const activeGoals = goals.filter((goal) => goal.active);
+  const amountToReceive = Math.max(
+    money(income.planned_amount) - money(income.received_amount),
+    0,
+  );
+  const requiresSavingsGoal = money(savingsTarget) > 0 && !fixedSavingsAllocated;
+  const mutation = useMutation({
+    mutationFn: () =>
+      onSubmit({
+        date: dateValue,
+        savings_goal: requiresSavingsGoal ? Number(savingsGoal) : null,
+      }),
+    onSuccess: onSaved,
+  });
+
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        mutation.mutate();
+      }}
+    >
+      <section className="payment-expectation" aria-label="Income receipt details">
+        <div className="payment-expectation-head">
+          <span className="payment-expectation-icon">
+            <ArrowDownToLine size={19} />
+          </span>
+          <div>
+            <small>You are receiving</small>
+            <strong>{income.name}</strong>
+            <span>{formatPkr(amountToReceive)} will be recorded in your bank balance</span>
+          </div>
+        </div>
+      </section>
+      <label>
+        Date received
+        <input
+          required
+          type="date"
+          value={dateValue}
+          onChange={(event) => setDateValue(event.target.value)}
+        />
+      </label>
+      {requiresSavingsGoal && (
+        <label>
+          Savings goal for fixed monthly savings
+          <select
+            required
+            value={savingsGoal}
+            onChange={(event) => setSavingsGoal(event.target.value)}
+          >
+            <option value="">Choose savings goal</option>
+            {activeGoals.map((goal) => (
+              <option key={goal.id} value={goal.id}>
+                {goal.name}
+              </option>
+            ))}
+          </select>
+          <span className="field-help">
+            {formatPkr(savingsTarget)} will move into this savings bucket internally. It will
+            not change your bank balance again.
+          </span>
+        </label>
+      )}
+      {requiresSavingsGoal && !activeGoals.length && (
+        <p className="form-error">
+          Create or reactivate a savings goal before receiving this income.
+        </p>
+      )}
+      {mutation.isError && (
+        <p className="form-error">Could not record this income. Check the date and try again.</p>
+      )}
+      <button
+        className="button primary full"
+        disabled={
+          mutation.isPending
+          || amountToReceive <= 0
+          || (requiresSavingsGoal && (!savingsGoal || !activeGoals.length))
+        }
+      >
+        {mutation.isPending ? "Receiving…" : `Receive ${formatPkr(amountToReceive)}`}
       </button>
     </form>
   );

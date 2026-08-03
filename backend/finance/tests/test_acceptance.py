@@ -57,13 +57,14 @@ def test_end_to_end_monthly_finance_flow() -> None:
     period = MonthlyPeriod.objects.get(household__owner=owner)
     month = client.get("/api/v1/months/current/").data
     income = month["income_plans"][0]
+    savings_goal = SavingsGoal.objects.get(household__owner=owner, name="Emergency fund")
     expenses = {item["name"]: item for item in month["planned_expenses"]}
     entry_date = date(period.year, period.month, 1).isoformat()
 
     assert (
         client.post(
             f"/api/v1/income-plans/{income['id']}/receive/",
-            {"amount": "500000.00", "date": entry_date},
+            {"date": entry_date, "savings_goal": savings_goal.id},
             format="json",
         ).status_code
         == 201
