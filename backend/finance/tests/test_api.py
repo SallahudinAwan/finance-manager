@@ -474,41 +474,31 @@ def test_new_month_moves_bill_and_safe_to_spend_leftovers_without_changing_bank(
     assert household.rollover_allocations.count() == 0
 
 
-def test_new_month_allocates_fixed_savings_to_a_goal_without_changing_bank() -> None:
+def test_receiving_income_uses_remaining_plan_and_allocates_fixed_savings_internally() -> None:
     owner, household = create_household()
-    income_template = RecurringIncome.objects.create(
+    RecurringIncome.objects.create(
         household=household,
         name="Salary",
         amount=Decimal("500000.00"),
     )
     goal = SavingsGoal.objects.create(household=household, name="Emergency")
-    first_month = generate_month(household, 2026, 7)
-    assert first_month.savings_target == Decimal("150000.00")
+    period = generate_month(household, 2026, 8)
+    planned = period.income_plans.get()
     assert not household.rollover_allocations.exists()
     client = APIClient()
     client.force_authenticate(owner)
     bank_before = bank_calculated_balance(household.bank_account)
 
-    preview = client.get("/api/v1/months/rollover-preview/?year=2026&month=8")
-    payload = {
-        "year": 2026,
-        "month": 8,
-        "rollover": {
-            "bill_allocations": [],
-            "safe_to_spend": None,
-            "fixed_savings_goal": goal.id,
-        },
-    }
-    created = client.post("/api/v1/months/generate/", payload, format="json")
-    repeated = client.post("/api/v1/months/generate/", payload, format="json")
+    receipt = client.post(
+        f"/api/v1/income-plans/{planned.id}/receive/",
+        {"date": "2026-08-03", "savings_goal": goal.id},
+        format="json",
+    )
 
-    period = household.periods.get(year=2026, month=8)
     allocation = household.rollover_allocations.get(source_kind="fixed_savings")
     movement = allocation.savings_movement
-    assert preview.status_code == 200
-    assert preview.data["fixed_savings_target"] == Decimal("150000.00")
-    assert created.status_code == 201
-    assert repeated.status_code == 201
+    assert receipt.status_code == 201
+    assert receipt.data["amount"] == "500000.00"
     assert allocation.source_period == period
     assert allocation.destination_period == period
     assert allocation.destination_goal == goal
@@ -516,55 +506,54 @@ def test_new_month_allocates_fixed_savings_to_a_goal_without_changing_bank() -> 
     assert movement.amount == Decimal("150000.00")
     assert savings_goal_balance(goal) == Decimal("150000.00")
     assert period_summary(period)["net_new_savings"] == Decimal("150000.00")
-    assert bank_calculated_balance(household.bank_account) == bank_before
+    assert period_summary(period)["safe_to_spend"] == Decimal("350000.00")
+    assert bank_calculated_balance(household.bank_account) == bank_before + Decimal("500000.00")
     assert household.rollover_allocations.filter(source_kind="fixed_savings").count() == 1
 
-    LedgerEntry.objects.create(
-        household=household,
-        period=period,
-        planned_income=period.income_plans.get(template=income_template),
-        created_by=owner,
-        entry_type=LedgerEntry.EntryType.INCOME,
-        direction=LedgerEntry.Direction.CREDIT,
-        date=date(2026, 8, 1),
-        amount=Decimal("500000.00"),
-        description="Salary",
+    repeated = client.post(
+        f"/api/v1/income-plans/{planned.id}/receive/",
+        {"date": "2026-08-04", "savings_goal": goal.id},
+        format="json",
     )
-    assert period_summary(period)["safe_to_spend"] == Decimal("350000.00")
+    assert repeated.status_code == 400
+    assert planned.ledger_entries.count() == 1
+    assert household.rollover_allocations.filter(source_kind="fixed_savings").count() == 1
 
     protected = client.delete(f"/api/v1/savings-movements/{movement.id}/")
     assert protected.status_code == 400
     assert savings_goal_balance(goal) == Decimal("150000.00")
 
+    deleted_receipt = client.delete(f"/api/v1/ledger/{receipt.data['id']}/")
+    assert deleted_receipt.status_code == 204
+    assert not household.rollover_allocations.filter(source_kind="fixed_savings").exists()
+    assert savings_goal_balance(goal) == Decimal("0.00")
+    assert bank_calculated_balance(household.bank_account) == bank_before
 
-def test_first_month_does_not_create_a_fixed_savings_movement() -> None:
+
+def test_receiving_income_requires_an_active_savings_goal_for_fixed_savings() -> None:
     owner, household = create_household()
-    goal = SavingsGoal.objects.create(household=household, name="Emergency")
+    RecurringIncome.objects.create(
+        household=household,
+        name="Salary",
+        amount=Decimal("500000.00"),
+    )
+    period = generate_month(household, 2026, 8)
+    planned = period.income_plans.get()
     client = APIClient()
     client.force_authenticate(owner)
     bank_before = bank_calculated_balance(household.bank_account)
 
-    preview = client.get("/api/v1/months/rollover-preview/?year=2026&month=8")
-    created = client.post(
-        "/api/v1/months/generate/",
-        {
-            "year": 2026,
-            "month": 8,
-            "rollover": {
-                "bill_allocations": [],
-                "safe_to_spend": None,
-                "fixed_savings_goal": goal.id,
-            },
-        },
+    response = client.post(
+        f"/api/v1/income-plans/{planned.id}/receive/",
+        {"date": "2026-08-03"},
         format="json",
     )
 
-    period = household.periods.get(year=2026, month=8)
-    assert preview.status_code == 200
-    assert preview.data["fixed_savings_target"] == Decimal("0.00")
-    assert created.status_code == 201
-    assert period.savings_target == Decimal("150000.00")
-    assert savings_goal_balance(goal) == Decimal("0.00")
+    assert response.status_code == 400
+    assert response.data["savings_goal"] == [
+        "Choose a savings goal for this month's fixed savings."
+    ]
+    assert not planned.ledger_entries.exists()
     assert not household.rollover_allocations.exists()
     assert not household.savings_movements.exists()
     assert bank_calculated_balance(household.bank_account) == bank_before

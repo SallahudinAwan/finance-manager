@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PlannedExpense } from "../types";
-import { AddMonthForm, HouseholdPaymentSummary } from "./MonthPage";
+import { AddMonthForm, HouseholdPaymentSummary, IncomeReceiptForm } from "./MonthPage";
 
 const expense: PlannedExpense = {
   id: 7,
@@ -38,7 +38,7 @@ describe("HouseholdPaymentSummary", () => {
 describe("AddMonthForm", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("asks where fixed savings and previous-month leftovers should go", async () => {
+  it("asks where previous-month leftovers should go", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(
@@ -47,7 +47,6 @@ describe("AddMonthForm", () => {
             source_month: "2026-07",
             unpaid_expenses: [{ id: 7, name: "Rent", remaining_amount: "10000.00" }],
             safe_to_spend: "25000.00",
-            fixed_savings_target: "15000.00",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
@@ -91,10 +90,8 @@ describe("AddMonthForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByText("Unpaid household amounts")).toBeVisible();
 
-    fireEvent.change(screen.getByLabelText("Savings goal for fixed savings"), {
-      target: { value: "3" },
-    });
-    fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "3" } });
+    expect(screen.queryByText("Fixed monthly savings")).not.toBeInTheDocument();
+    fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("What should happen to this amount?"), {
       target: { value: "savings" },
     });
@@ -109,7 +106,6 @@ describe("AddMonthForm", () => {
       rollover: {
         bill_allocations: [{ planned_expense: 7, destination_goal: 3 }],
         safe_to_spend: { action: "savings", destination_goal: 3 },
-        fixed_savings_goal: 3,
       },
     });
   });
@@ -123,7 +119,6 @@ describe("AddMonthForm", () => {
             source_month: null,
             unpaid_expenses: [],
             safe_to_spend: "0.00",
-            fixed_savings_target: "0.00",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
@@ -158,5 +153,53 @@ describe("AddMonthForm", () => {
     expect(screen.queryByText("Fixed monthly savings")).not.toBeInTheDocument();
     const request = fetchMock.mock.calls[1][1] as RequestInit;
     expect(JSON.parse(String(request.body))).toEqual({ year: 2026, month: 8 });
+  });
+});
+
+describe("IncomeReceiptForm", () => {
+  it("records the remaining planned income and asks for the fixed-savings goal", async () => {
+    const onSubmit = vi.fn(async () => undefined);
+    const onSaved = vi.fn(async () => undefined);
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <IncomeReceiptForm
+          income={{
+            id: 9,
+            name: "Salary",
+            planned_amount: "500000.00",
+            received_amount: "50000.00",
+          }}
+          savingsTarget="150000.00"
+          fixedSavingsAllocated={false}
+          goals={[
+            {
+              id: 3,
+              name: "Emergency",
+              opening_balance: "0.00",
+              target_amount: null,
+              active: true,
+              balance: "0.00",
+            },
+          ]}
+          defaultDate="2026-08-01"
+          onSubmit={onSubmit}
+          onSaved={onSaved}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText("Rs 450,000 will be recorded in your bank balance")).toBeVisible();
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Date received"), {
+      target: { value: "2026-08-03" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /Savings goal for fixed monthly savings/ }), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Receive Rs.450,000/ }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+    expect(onSubmit).toHaveBeenCalledWith({ date: "2026-08-03", savings_goal: 3 });
   });
 });

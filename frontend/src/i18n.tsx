@@ -83,6 +83,7 @@ const urduMessages: Record<string, string> = {
   "Only you can see the entry details. The household sees an anonymous combined total.":
     "صرف آپ تفصیل دیکھ سکتے ہیں۔ گھرانے کو صرف مجموعی رقم نظر آتی ہے۔",
   "Reserved before personal spending": "ذاتی خرچ سے پہلے محفوظ",
+  "Reserved automatically when income is received": "آمدنی وصول ہونے پر خودکار طور پر محفوظ",
   "Money in": "آمدنی",
   "Income": "آمدنی",
   "Planned obligations": "منصوبہ شدہ واجبات",
@@ -129,6 +130,17 @@ const urduMessages: Record<string, string> = {
   "This permanently removes the transaction and immediately recalculates every affected balance.":
     "یہ لین دین مستقل طور پر حذف ہوگا اور تمام متعلقہ بیلنس فوراً دوبارہ حساب ہوں گے۔",
   "Record received income": "وصول شدہ آمدنی ریکارڈ کریں",
+  "Confirm the receiving date and reserve this month’s fixed savings.":
+    "وصولی کی تاریخ کی تصدیق کریں اور اس مہینے کی مقررہ بچت محفوظ کریں۔",
+  "Income receipt details": "آمدنی کی وصولی کی تفصیل",
+  "You are receiving": "آپ وصول کر رہے ہیں",
+  "Date received": "وصولی کی تاریخ",
+  "Savings goal for fixed monthly savings": "مقررہ ماہانہ بچت کا ہدف",
+  "Create or reactivate a savings goal before receiving this income.":
+    "یہ آمدنی وصول کرنے سے پہلے بچت کا ہدف بنائیں یا دوبارہ فعال کریں۔",
+  "Could not record this income. Check the date and try again.":
+    "یہ آمدنی ریکارڈ نہیں ہو سکی۔ تاریخ چیک کر کے دوبارہ کوشش کریں۔",
+  "Receiving…": "وصول کیا جا رہا ہے…",
   "Record the actual amount that reached your bank.": "وہ اصل رقم درج کریں جو آپ کے بینک میں پہنچی۔",
   "Amount received": "وصول شدہ رقم",
   "Create monthly workspace": "ماہانہ ورک اسپیس بنائیں",
@@ -673,6 +685,19 @@ function translate(message: string): string {
   if (fixedSavings) {
     return `${fixedSavings[1]} نئے مہینے کے لیے محفوظ ہوں گے۔ وصول کرنے والا بچت ہدف منتخب کریں۔`;
   }
+
+  const receivedIncome = message.match(/^(.+) will be recorded in your bank balance$/);
+  if (receivedIncome) return `${receivedIncome[1]} آپ کے بینک بیلنس میں ریکارڈ ہوں گے`;
+
+  const internalSavings = message.match(
+    /^(.+) will move into this savings bucket internally\. It will not change your bank balance again\.$/,
+  );
+  if (internalSavings) {
+    return `${internalSavings[1]} اندرونی طور پر اس بچت ہدف میں منتقل ہوں گے۔ اس سے آپ کا بینک بیلنس دوبارہ تبدیل نہیں ہوگا۔`;
+  }
+
+  const receiveAmount = message.match(/^Receive (.+)$/);
+  if (receiveAmount) return `${receiveAmount[1]} وصول کریں`;
 
   return message;
 }

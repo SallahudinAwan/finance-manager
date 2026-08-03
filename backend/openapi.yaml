@@ -449,22 +449,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MonthlyIncomePlan'
+              $ref: '#/components/schemas/IncomeReceipt'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/MonthlyIncomePlan'
+              $ref: '#/components/schemas/IncomeReceipt'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/MonthlyIncomePlan'
-        required: true
+              $ref: '#/components/schemas/IncomeReceipt'
       security:
       - cookieAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MonthlyIncomePlan'
+                $ref: '#/components/schemas/LedgerEntry'
           description: ''
   /api/v1/income-templates/:
     get:
@@ -1946,6 +1945,16 @@ components:
       - onboarding_complete
       - owner
       - timezone
+    IncomeReceipt:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        savings_goal:
+          type: integer
+          minimum: 1
+          nullable: true
     IncomeSetup:
       type: object
       properties:
@@ -2092,10 +2101,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/SafeToSpendRolloverInput'
           nullable: true
-        fixed_savings_goal:
-          type: integer
-          minimum: 1
-          nullable: true
     MonthlyIncomePlan:
       type: object
       properties:
@@ -2141,6 +2146,9 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        fixed_savings_allocated:
+          type: boolean
+          readOnly: true
         safe_to_spend_carryover:
           type: number
           format: double
@@ -2165,6 +2173,7 @@ components:
           readOnly: true
       required:
       - created_at
+      - fixed_savings_allocated
       - id
       - income_plans
       - label
