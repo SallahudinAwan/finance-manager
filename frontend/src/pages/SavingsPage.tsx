@@ -23,6 +23,7 @@ import type {
   SavingsMovement,
   Session,
 } from "../types";
+import { defaultTransactionDate } from "../utils/dates";
 
 export function SavingsPage() {
   const { session } = useOutletContext<{ session: Session }>();
@@ -90,7 +91,7 @@ export function SavingsPage() {
                 <SavingsMovementForm
                   goals={goals.data.results}
                   period={month.data.id}
-                  defaultDate={`${month.data.label}-01`}
+                  defaultDate={defaultTransactionDate(month.data.label)}
                   onSaved={async () => {
                     setMovementOpen(false);
                     await refresh();

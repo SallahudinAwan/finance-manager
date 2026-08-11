@@ -83,6 +83,88 @@ def test_member_cannot_record_shared_payment() -> None:
     assert household.ledger_entries.count() == 0
 
 
+def test_owner_can_reorder_expenses_within_ranked_status_groups() -> None:
+    owner, household = create_household()
+    for name in ("Rent", "Electricity", "Internet", "Water", "Gas"):
+        RecurringExpense.objects.create(
+            household=household,
+            name=name,
+            expected_amount=Decimal("10000.00"),
+            due_day=5,
+        )
+    period = generate_month(household, 2026, 8)
+    planned = {expense.name: expense for expense in period.planned_expenses.all()}
+    for name, amount in (
+        ("Electricity", Decimal("5000.00")),
+        ("Internet", Decimal("10000.00")),
+        ("Water", Decimal("12000.00")),
+    ):
+        LedgerEntry.objects.create(
+            household=household,
+            period=period,
+            created_by=owner,
+            planned_expense=planned[name],
+            entry_type=LedgerEntry.EntryType.HOUSEHOLD_EXPENSE,
+            direction=LedgerEntry.Direction.DEBIT,
+            date=date(2026, 8, 5),
+            amount=amount,
+            description=name,
+        )
+
+    client = APIClient()
+    client.force_authenticate(owner)
+    unpaid_response = client.post(
+        "/api/v1/planned-expenses/reorder/",
+        {"expense_ids": [planned["Gas"].id, planned["Rent"].id]},
+        format="json",
+    )
+    settled_response = client.post(
+        "/api/v1/planned-expenses/reorder/",
+        {"expense_ids": [planned["Water"].id, planned["Internet"].id]},
+        format="json",
+    )
+    mixed_response = client.post(
+        "/api/v1/planned-expenses/reorder/",
+        {"expense_ids": [planned["Rent"].id, planned["Electricity"].id]},
+        format="json",
+    )
+
+    planned["Gas"].refresh_from_db()
+    planned["Rent"].refresh_from_db()
+    planned["Water"].refresh_from_db()
+    planned["Internet"].refresh_from_db()
+    assert unpaid_response.status_code == 204
+    assert settled_response.status_code == 204
+    assert mixed_response.status_code == 400
+    assert planned["Gas"].display_order == 0
+    assert planned["Rent"].display_order == 1
+    assert planned["Water"].display_order == 0
+    assert planned["Internet"].display_order == 1
+
+
+def test_member_cannot_reorder_household_expenses() -> None:
+    _, household = create_household()
+    member = create_member(household)
+    for name in ("Rent", "Gas"):
+        RecurringExpense.objects.create(
+            household=household,
+            name=name,
+            expected_amount=Decimal("10000.00"),
+            due_day=5,
+        )
+    expenses = list(generate_month(household, 2026, 8).planned_expenses.all())
+    client = APIClient()
+    client.force_authenticate(member)
+
+    response = client.post(
+        "/api/v1/planned-expenses/reorder/",
+        {"expense_ids": [expense.id for expense in reversed(expenses)]},
+        format="json",
+    )
+
+    assert response.status_code == 403
+
+
 def test_member_can_view_savings_movements_but_cannot_change_them() -> None:
     owner, household = create_household()
     member = create_member(household)

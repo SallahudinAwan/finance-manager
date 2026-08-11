@@ -2,7 +2,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PlannedExpense } from "../types";
-import { AddMonthForm, HouseholdPaymentSummary, IncomeReceiptForm } from "./MonthPage";
+import { defaultTransactionDate } from "../utils/dates";
+import {
+  AddMonthForm,
+  HouseholdPaymentSummary,
+  IncomePlanCards,
+  IncomeReceiptForm,
+  PlannedExpenseCards,
+} from "./MonthPage";
+import { reorderExpensesWithinStatus } from "./monthFinanceUtils";
 
 const expense: PlannedExpense = {
   id: 7,
@@ -10,6 +18,7 @@ const expense: PlannedExpense = {
   expected_amount: "25000.00",
   due_date: "2026-07-05",
   reminder_lead_days: 3,
+  display_order: 0,
   actual_paid_amount: "5000.00",
   carryover_credit: "2000.00",
   paid_amount: "7000.00",
@@ -17,6 +26,124 @@ const expense: PlannedExpense = {
   overpaid_amount: "0.00",
   status: "partial",
 };
+
+describe("Monthly finance cards", () => {
+  it("shows income plans as interactive cards", () => {
+    const onReceive = vi.fn();
+    render(
+      <IncomePlanCards
+        incomes={[
+          {
+            id: 9,
+            name: "Salary",
+            planned_amount: "500000.00",
+            received_amount: "50000.00",
+          },
+          {
+            id: 10,
+            name: "Freelance",
+            planned_amount: "75000.00",
+            received_amount: "75000.00",
+          },
+        ]}
+        isOwner
+        onReceive={onReceive}
+      />,
+    );
+
+    const cards = screen.getByRole("list", { name: "Income plans" });
+    expect(within(cards).queryByRole("table")).not.toBeInTheDocument();
+    expect(within(cards).getByText("Awaiting")).toBeVisible();
+    expect(within(cards).getAllByText("Received").length).toBeGreaterThan(0);
+    expect(within(cards).getByText("Rs 500,000")).toBeVisible();
+    fireEvent.click(within(cards).getByRole("button", { name: "Receive" }));
+    expect(onReceive).toHaveBeenCalledWith(9);
+  });
+
+  it("shows household expenses as cards with payment details", () => {
+    const onAddPayment = vi.fn();
+    render(
+      <PlannedExpenseCards
+        expenses={[expense]}
+        isOwner
+        onAddPayment={onAddPayment}
+      />,
+    );
+
+    const cards = screen.getByRole("list", { name: "Household expense cards" });
+    expect(within(cards).queryByRole("table")).not.toBeInTheDocument();
+    expect(within(cards).getByText("House rent")).toBeVisible();
+    expect(within(cards).getByText("partial")).toBeVisible();
+    expect(within(cards).getByText("Rs 2,000 carried forward")).toBeVisible();
+    expect(within(cards).getByText("Rs 18,000")).toHaveClass("negative-text");
+    fireEvent.click(within(cards).getByRole("button", { name: "Add payment" }));
+    expect(onAddPayment).toHaveBeenCalledWith(7);
+  });
+
+  it("ranks unpaid, partial, and settled expenses while preserving custom group order", () => {
+    const expenses: PlannedExpense[] = [
+      {
+        ...expense,
+        id: 10,
+        name: "Paid internet",
+        status: "paid",
+        display_order: 0,
+      },
+      {
+        ...expense,
+        id: 12,
+        name: "Second unpaid bill",
+        status: "unpaid",
+        display_order: 2,
+      },
+      {
+        ...expense,
+        id: 11,
+        name: "Partial electricity",
+        status: "partial",
+        display_order: 0,
+      },
+      {
+        ...expense,
+        id: 9,
+        name: "First unpaid bill",
+        status: "unpaid",
+        display_order: 1,
+      },
+    ];
+
+    const { container } = render(
+      <PlannedExpenseCards expenses={expenses} isOwner onAddPayment={vi.fn()} />,
+    );
+
+    expect(
+      Array.from(container.querySelectorAll(".obligation-card h3"), (node) => node.textContent),
+    ).toEqual([
+      "First unpaid bill",
+      "Second unpaid bill",
+      "Partial electricity",
+      "Paid internet",
+    ]);
+    expect(screen.getByRole("button", { name: "Reorder First unpaid bill" })).toBeVisible();
+
+    const reordered = reorderExpensesWithinStatus(expenses, 12, 9);
+    expect(reordered.map((item) => item.name)).toEqual([
+      "Second unpaid bill",
+      "First unpaid bill",
+      "Partial electricity",
+      "Paid internet",
+    ]);
+    expect(reorderExpensesWithinStatus(expenses, 9, 11)).toEqual(
+      reorderExpensesWithinStatus(expenses, -1, -2),
+    );
+  });
+
+  it("defaults transaction dates to today for the active month", () => {
+    const today = new Date(2026, 7, 11);
+    expect(defaultTransactionDate("2026-08", today)).toBe("2026-08-11");
+    expect(defaultTransactionDate("2026-07", today)).toBe("2026-07-01");
+  });
+});
 
 describe("HouseholdPaymentSummary", () => {
   it("identifies the bill and explains its expected and remaining amounts", () => {

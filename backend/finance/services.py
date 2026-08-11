@@ -204,6 +204,7 @@ def generate_month(
             ]
         )
         last_day = monthrange(year, month)[1]
+        expense_templates = list(household.expense_templates.filter(active=True))
         PlannedExpense.objects.bulk_create(
             [
                 PlannedExpense(
@@ -213,8 +214,9 @@ def generate_month(
                     expected_amount=template.expected_amount,
                     due_date=date(year, month, min(template.due_day, last_day)),
                     reminder_lead_days=template.reminder_lead_days,
+                    display_order=index,
                 )
-                for template in household.expense_templates.filter(active=True)
+                for index, template in enumerate(expense_templates)
             ]
         )
     refresh_expense_carryovers(household, period)

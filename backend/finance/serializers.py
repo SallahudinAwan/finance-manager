@@ -146,6 +146,7 @@ class PlannedExpenseSerializer(serializers.ModelSerializer):
             "expected_amount",
             "due_date",
             "reminder_lead_days",
+            "display_order",
             "actual_paid_amount",
             "carryover_credit",
             "paid_amount",
@@ -155,7 +156,19 @@ class PlannedExpenseSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at"]
+        read_only_fields = ["display_order", "created_at", "updated_at"]
+
+
+class PlannedExpenseReorderSerializer(serializers.Serializer):
+    expense_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False,
+    )
+
+    def validate_expense_ids(self, value: list[int]) -> list[int]:
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("Expense IDs must be unique.")
+        return value
 
 
 class MonthlyPeriodSerializer(serializers.ModelSerializer):

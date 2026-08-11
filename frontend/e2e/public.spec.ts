@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("public landing offers Google sign-in and legal controls", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Know what is safe to spend/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Give every rupee a path/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /Continue with Google/i })).toHaveAttribute(
     "href",
     /accounts\/google\/login/,

@@ -2,13 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ApiError, api } from "./api/client";
-import { AppShell } from "./components/AppShell";
 import { Skeleton } from "./components/ui";
 import { I18nProvider } from "./i18n";
 import type { Session } from "./types";
 
 const AccountPage = lazy(() =>
   import("./pages/AccountPage").then((module) => ({ default: module.AccountPage })),
+);
+const AppShell = lazy(() =>
+  import("./components/AppShell").then((module) => ({ default: module.AppShell })),
 );
 const DashboardPage = lazy(() =>
   import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })),

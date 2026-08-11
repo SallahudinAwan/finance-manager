@@ -1,5 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  rectSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ArrowLeft,
   ArrowRightLeft,
   ArrowDownToLine,
@@ -7,6 +23,7 @@ import {
   CalendarDays,
   Check,
   CircleDollarSign,
+  GripVertical,
   LockKeyhole,
   Pencil,
   Plus,
@@ -14,7 +31,7 @@ import {
   Trash2,
   WalletCards,
 } from "lucide-react";
-import { type FormEvent, type RefObject, useRef, useState } from "react";
+import { type FormEvent, type RefObject, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import {
   api,
@@ -27,7 +44,21 @@ import {
 } from "../api/client";
 import { Modal } from "../components/Modal";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
-import type { Month, Paginated, RolloverPreview, SavingsGoal, Session } from "../types";
+import type {
+  IncomePlan,
+  Month,
+  Paginated,
+  PlannedExpense,
+  RolloverPreview,
+  SavingsGoal,
+  Session,
+} from "../types";
+import { defaultTransactionDate } from "../utils/dates";
+import {
+  expensePriorityGroup,
+  reorderExpensesWithinStatus,
+  sortPlannedExpenses,
+} from "./monthFinanceUtils";
 
 interface PersonalExpense {
   id: number;
@@ -58,6 +89,11 @@ export function MonthPage() {
   const { label } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const reorderExpenses = useMutation({
+    mutationFn: (expenseIds: number[]) =>
+      postJson("/planned-expenses/reorder/", { expense_ids: expenseIds }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["month"] }),
+  });
   const [paymentTarget, setPaymentTarget] = useState<number | null>(null);
   const [incomeTarget, setIncomeTarget] = useState<number | null>(null);
   const [addMonthOpen, setAddMonthOpen] = useState(false);
@@ -163,6 +199,7 @@ export function MonthPage() {
     (expense) => expense.id === paymentTarget,
   );
   const incomePlan = data.income_plans.find((income) => income.id === incomeTarget);
+  const defaultEntryDate = defaultTransactionDate(data.label);
 
   return (
     <>
@@ -275,7 +312,7 @@ export function MonthPage() {
             >
               <PersonalExpenseForm
                 period={data.id}
-                defaultDate={`${data.label}-01`}
+                defaultDate={defaultEntryDate}
                 onSaved={async () => {
                   setPersonalOpen(false);
                   await refresh();
@@ -325,32 +362,11 @@ export function MonthPage() {
             </div>
             <CircleDollarSign size={20} className="muted-icon" />
           </div>
-          <div className="workspace-list">
-            {data.income_plans.map((income) => {
-              const complete = money(income.received_amount) >= money(income.planned_amount);
-              return (
-                <div className="workspace-row" key={income.id}>
-                  <span className={`status-check ${complete ? "complete" : ""}`}>
-                    {complete ? <Check size={15} /> : <ArrowDownToLine size={15} />}
-                  </span>
-                  <div>
-                    <strong>{income.name}</strong>
-                    <small>
-                      {formatPkr(income.received_amount)} of {formatPkr(income.planned_amount)}
-                    </small>
-                  </div>
-                  {session.is_owner && !complete && (
-                    <button
-                      className="button small secondary"
-                      onClick={() => setIncomeTarget(income.id)}
-                    >
-                      Receive
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <IncomePlanCards
+            incomes={data.income_plans}
+            isOwner={session.is_owner}
+            onReceive={setIncomeTarget}
+          />
         </section>
 
         <section className="panel span-2" data-tour="planned-obligations">
@@ -365,71 +381,18 @@ export function MonthPage() {
               </span>
             )}
           </div>
-          <div className="expense-table-wrap">
-            <table className="expense-table">
-              <thead>
-                <tr>
-                  <th>Expense</th>
-                  <th>Due</th>
-                  <th>Expected</th>
-                  <th>Paid</th>
-                  <th>Unpaid</th>
-                  <th>Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {data.planned_expenses.map((expense) => (
-                  <tr key={expense.id}>
-                    <td>
-                      <strong>{expense.name}</strong>
-                    </td>
-                    <td>
-                      <CalendarDays size={14} />
-                      {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(
-                        appLocale(),
-                        { day: "numeric", month: "short" },
-                      )}
-                    </td>
-                    <td>{formatPkr(expense.expected_amount)}</td>
-                    <td>
-                      {formatPkr(expense.paid_amount)}
-                      {money(expense.carryover_credit) > 0 && (
-                        <small className="carryover-note">
-                          {formatPkr(expense.carryover_credit)} carried forward
-                        </small>
-                      )}
-                    </td>
-                    <td>
-                      <strong className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}>
-                        {formatPkr(expense.remaining_amount)}
-                      </strong>
-                    </td>
-                    <td>
-                      <span className={`status-chip ${expense.status}`}>
-                        {expense.status}
-                      </span>
-                    </td>
-                    <td>
-                      {session.is_owner && (
-                        <button
-                          className="table-action"
-                          onClick={() => setPaymentTarget(expense.id)}
-                        >
-                          Add payment
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PlannedExpenseCards
+            expenses={data.planned_expenses}
+            isOwner={session.is_owner}
+            onAddPayment={setPaymentTarget}
+            onReorder={(expenseIds) => reorderExpenses.mutateAsync(expenseIds)}
+            reorderError={reorderExpenses.isError}
+          />
         </section>
       </div>
 
       {session.is_owner && (
-        <section className="panel" data-tour="month-transactions">
+        <section className="panel month-transactions-panel" data-tour="month-transactions">
           <div className="panel-heading">
             <div>
               <span className="panel-kicker">Actual bank movements</span>
@@ -503,7 +466,7 @@ export function MonthPage() {
         </section>
       )}
 
-      <section className="panel" data-tour="personal-expenses">
+      <section className="panel personal-expenses-panel" data-tour="personal-expenses">
         <div className="panel-heading">
           <div>
             <span className="panel-kicker">Private by design</span>
@@ -572,7 +535,7 @@ export function MonthPage() {
             <HouseholdPaymentSummary expense={paymentExpense} />
             <MoneyMovementForm
               label="Payment amount"
-              defaultDate={`${data.label}-01`}
+              defaultDate={defaultEntryDate}
               amountInputRef={paymentAmountRef}
               onSubmit={(body) =>
                 postJson(`/planned-expenses/${paymentExpense.id}/payments/`, body)
@@ -656,7 +619,7 @@ export function MonthPage() {
             savingsTarget={data.savings_target}
             fixedSavingsAllocated={data.fixed_savings_allocated}
             goals={goals.data?.results ?? []}
-            defaultDate={`${data.label}-01`}
+            defaultDate={defaultEntryDate}
             onSubmit={(body) => postJson(`/income-plans/${incomePlan.id}/receive/`, body)}
             onSaved={async () => {
               setIncomeTarget(null);
@@ -666,6 +629,234 @@ export function MonthPage() {
         )}
       </Modal>
     </>
+  );
+}
+
+export function IncomePlanCards({
+  incomes,
+  isOwner,
+  onReceive,
+}: {
+  incomes: IncomePlan[];
+  isOwner: boolean;
+  onReceive: (incomeId: number) => void;
+}) {
+  return (
+    <div className="finance-card-grid income-card-grid" role="list" aria-label="Income plans">
+      {incomes.map((income) => {
+        const complete = money(income.received_amount) >= money(income.planned_amount);
+        return (
+          <article
+            className={`finance-item-card income-card ${complete ? "complete" : ""}`}
+            key={income.id}
+          >
+            <div className="finance-card-top">
+              <div className="finance-card-identity">
+                <span className={`finance-card-icon income ${complete ? "complete" : ""}`}>
+                  {complete ? <Check size={17} /> : <ArrowDownToLine size={17} />}
+                </span>
+                <div>
+                  <small>Income source</small>
+                  <h3>{income.name}</h3>
+                </div>
+              </div>
+              <span className={`status-chip ${complete ? "paid" : "unpaid"}`}>
+                {complete ? "Received" : "Awaiting"}
+              </span>
+            </div>
+            <div className="finance-card-metrics income-card-metrics">
+              <div>
+                <span>Expected</span>
+                <strong>{formatPkr(income.planned_amount)}</strong>
+              </div>
+              <div>
+                <span>Received</span>
+                <strong className={complete ? "positive-text" : ""}>
+                  {formatPkr(income.received_amount)}
+                </strong>
+              </div>
+            </div>
+            {isOwner && !complete && (
+              <button
+                className="button secondary small finance-card-action"
+                onClick={() => onReceive(income.id)}
+              >
+                <ArrowDownToLine size={15} /> Receive
+              </button>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+export function PlannedExpenseCards({
+  expenses,
+  isOwner,
+  onAddPayment,
+  onReorder,
+  reorderError = false,
+}: {
+  expenses: PlannedExpense[];
+  isOwner: boolean;
+  onAddPayment: (expenseId: number) => void;
+  onReorder?: (expenseIds: number[]) => Promise<unknown> | void;
+  reorderError?: boolean;
+}) {
+  const [orderedExpenses, setOrderedExpenses] = useState(() => sortPlannedExpenses(expenses));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  useEffect(() => {
+    setOrderedExpenses(sortPlannedExpenses(expenses));
+  }, [expenses]);
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const activeId = Number(active.id);
+    const overId = Number(over.id);
+    const activeExpense = orderedExpenses.find((expense) => expense.id === activeId);
+    const overExpense = orderedExpenses.find((expense) => expense.id === overId);
+    if (
+      !activeExpense
+      || !overExpense
+      || expensePriorityGroup(activeExpense) !== expensePriorityGroup(overExpense)
+    ) {
+      return;
+    }
+    const reordered = reorderExpensesWithinStatus(orderedExpenses, activeId, overId);
+    setOrderedExpenses(reordered);
+    const group = expensePriorityGroup(activeExpense);
+    const groupIds = reordered
+      .filter((expense) => expensePriorityGroup(expense) === group)
+      .map((expense) => expense.id);
+    Promise.resolve(onReorder?.(groupIds)).catch(() => {
+      setOrderedExpenses(sortPlannedExpenses(expenses));
+    });
+  };
+
+  return (
+    <>
+      {isOwner && orderedExpenses.length > 1 && (
+        <p className="expense-order-help">
+          Unpaid expenses stay first, followed by partial and settled expenses. Drag within
+          a status group to set your preferred order.
+        </p>
+      )}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={orderedExpenses.map((expense) => expense.id)}
+          strategy={rectSortingStrategy}
+        >
+          <div
+            className="finance-card-grid obligation-card-grid"
+            role="list"
+            aria-label="Household expense cards"
+          >
+            {orderedExpenses.map((expense) => (
+              <SortableExpenseCard
+                expense={expense}
+                isOwner={isOwner}
+                key={expense.id}
+                onAddPayment={onAddPayment}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+      {reorderError && <p className="form-error">Could not save the expense order.</p>}
+    </>
+  );
+}
+
+function SortableExpenseCard({
+  expense,
+  isOwner,
+  onAddPayment,
+}: {
+  expense: PlannedExpense;
+  isOwner: boolean;
+  onAddPayment: (expenseId: number) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: expense.id,
+    disabled: !isOwner,
+  });
+  return (
+    <article
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`finance-item-card obligation-card ${expense.status} ${isDragging ? "dragging" : ""}`}
+    >
+      <div className="finance-card-top">
+        <div className="finance-card-identity">
+          <span className={`finance-card-icon expense ${expense.status}`}>
+            <Receipt size={17} />
+          </span>
+          <div>
+            <small>Household expense</small>
+            <h3>{expense.name}</h3>
+          </div>
+        </div>
+        <div className="finance-card-controls">
+          <span className={`status-chip ${expense.status}`}>{expense.status}</span>
+          {isOwner && (
+            <button
+              type="button"
+              className="expense-drag-handle"
+              aria-label={`Reorder ${expense.name}`}
+              title="Drag to reorder within this status"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="finance-card-due">
+        <CalendarDays size={14} />
+        <span>Due</span>
+        <time dateTime={expense.due_date}>
+          {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(appLocale(), {
+            day: "numeric",
+            month: "short",
+          })}
+        </time>
+      </div>
+      <div className="finance-card-metrics obligation-card-metrics">
+        <div>
+          <span>Expected</span>
+          <strong>{formatPkr(expense.expected_amount)}</strong>
+        </div>
+        <div>
+          <span>Paid</span>
+          <strong>{formatPkr(expense.paid_amount)}</strong>
+          {money(expense.carryover_credit) > 0 && (
+            <small className="carryover-note">
+              {formatPkr(expense.carryover_credit)} carried forward
+            </small>
+          )}
+        </div>
+        <div>
+          <span>Unpaid</span>
+          <strong className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}>
+            {formatPkr(expense.remaining_amount)}
+          </strong>
+        </div>
+      </div>
+      {isOwner && (
+        <button
+          className="button secondary small finance-card-action"
+          onClick={() => onAddPayment(expense.id)}
+        >
+          <Plus size={15} /> Add payment
+        </button>
+      )}
+    </article>
   );
 }
 
