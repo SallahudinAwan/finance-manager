@@ -2,7 +2,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PlannedExpense } from "../types";
-import { AddMonthForm, HouseholdPaymentSummary, IncomeReceiptForm } from "./MonthPage";
+import {
+  AddMonthForm,
+  HouseholdPaymentSummary,
+  IncomePlanCards,
+  IncomeReceiptForm,
+  PlannedExpenseCards,
+} from "./MonthPage";
 
 const expense: PlannedExpense = {
   id: 7,
@@ -17,6 +23,60 @@ const expense: PlannedExpense = {
   overpaid_amount: "0.00",
   status: "partial",
 };
+
+describe("Monthly finance cards", () => {
+  it("shows income plans as interactive cards", () => {
+    const onReceive = vi.fn();
+    render(
+      <IncomePlanCards
+        incomes={[
+          {
+            id: 9,
+            name: "Salary",
+            planned_amount: "500000.00",
+            received_amount: "50000.00",
+          },
+          {
+            id: 10,
+            name: "Freelance",
+            planned_amount: "75000.00",
+            received_amount: "75000.00",
+          },
+        ]}
+        isOwner
+        onReceive={onReceive}
+      />,
+    );
+
+    const cards = screen.getByRole("list", { name: "Income plans" });
+    expect(within(cards).queryByRole("table")).not.toBeInTheDocument();
+    expect(within(cards).getByText("Awaiting")).toBeVisible();
+    expect(within(cards).getAllByText("Received").length).toBeGreaterThan(0);
+    expect(within(cards).getByText("Rs 500,000")).toBeVisible();
+    fireEvent.click(within(cards).getByRole("button", { name: "Receive" }));
+    expect(onReceive).toHaveBeenCalledWith(9);
+  });
+
+  it("shows household expenses as cards with payment details", () => {
+    const onAddPayment = vi.fn();
+    render(
+      <PlannedExpenseCards
+        expenses={[expense]}
+        isOwner
+        onAddPayment={onAddPayment}
+      />,
+    );
+
+    const cards = screen.getByRole("list", { name: "Household expense cards" });
+    expect(within(cards).queryByRole("table")).not.toBeInTheDocument();
+    expect(within(cards).getByText("House rent")).toBeVisible();
+    expect(within(cards).getByText("partial")).toBeVisible();
+    expect(within(cards).getByText("Rs 2,000 carried forward")).toBeVisible();
+    expect(within(cards).getByText("Rs 18,000")).toHaveClass("negative-text");
+    fireEvent.click(within(cards).getByRole("button", { name: "Add payment" }));
+    expect(onAddPayment).toHaveBeenCalledWith(7);
+  });
+});
 
 describe("HouseholdPaymentSummary", () => {
   it("identifies the bill and explains its expected and remaining amounts", () => {

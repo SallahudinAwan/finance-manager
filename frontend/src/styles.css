@@ -962,7 +962,6 @@ html[dir="rtl"] .tour-card {
 }
 
 .bill-list,
-.workspace-list,
 .notification-list,
 .invite-list {
   display: flex;
@@ -979,7 +978,6 @@ html[dir="rtl"] .tour-card {
 }
 
 .status-icon,
-.status-check,
 .template-icon,
 .notification-icon {
   display: grid;
@@ -1275,37 +1273,169 @@ html[dir="rtl"] .tour-card {
   min-width: 0;
 }
 
-.workspace-row {
-  display: grid;
-  grid-template-columns: 34px 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 13px 0;
-  border-top: 1px solid var(--border);
+.muted-icon {
+  color: var(--faint);
 }
 
-.workspace-row div {
+.finance-card-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.income-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.obligation-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.finance-item-card {
   display: flex;
   min-width: 0;
+  padding: 15px;
   flex-direction: column;
+  gap: 14px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface) 92%, transparent), var(--surface-soft));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.workspace-row strong {
-  font-size: 11px;
+.finance-item-card:hover {
+  border-color: color-mix(in srgb, var(--indigo) 28%, var(--border));
+  box-shadow: 0 12px 26px rgba(20, 25, 52, 0.07);
+  transform: translateY(-1px);
 }
 
-.workspace-row small {
+.finance-card-top,
+.finance-card-identity,
+.finance-card-due {
+  display: flex;
+  align-items: center;
+}
+
+.finance-card-top {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.finance-card-identity {
+  min-width: 0;
+  gap: 10px;
+}
+
+.finance-card-identity > div {
+  min-width: 0;
+}
+
+.finance-card-identity small,
+.finance-card-metrics span {
+  display: block;
   color: var(--faint);
   font-size: 9px;
+  font-weight: 700;
 }
 
-.status-check.complete {
+.finance-card-identity h3 {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finance-card-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--indigo);
+  background: var(--indigo-soft);
+  border-radius: 11px;
+}
+
+.finance-card-icon.income {
   color: var(--emerald);
   background: var(--emerald-soft);
 }
 
-.muted-icon {
-  color: var(--faint);
+.finance-card-icon.expense {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.finance-card-icon.expense.partial {
+  color: var(--indigo);
+  background: var(--indigo-soft);
+}
+
+.finance-card-icon.expense.paid {
+  color: var(--emerald);
+  background: var(--emerald-soft);
+}
+
+.finance-card-icon.expense.overpaid {
+  color: #0ea5e9;
+  background: color-mix(in srgb, #0ea5e9 10%, transparent);
+}
+
+.finance-card-due {
+  width: fit-content;
+  gap: 5px;
+  padding: 6px 9px;
+  color: var(--muted);
+  font-size: 9px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.finance-card-due time {
+  color: var(--text);
+  font-weight: 750;
+}
+
+.finance-card-metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.income-card-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.obligation-card-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.finance-card-metrics > div {
+  min-width: 0;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: 10px;
+}
+
+.finance-card-metrics strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.finance-card-metrics .carryover-note {
+  margin-top: 4px;
+  font-size: 8px;
+  white-space: normal;
+}
+
+.finance-card-action {
+  width: 100%;
+  min-height: 40px;
+  margin-top: auto;
 }
 
 .expense-table-wrap {
@@ -3358,6 +3488,9 @@ html[dir="rtl"] .payment-expectation-grid > div:last-child {
   .personal-grid,
   .template-columns { grid-template-columns: 1fr; }
   .metric-card { min-height: 118px; }
+  .income-card-grid,
+  .obligation-card-grid { grid-template-columns: 1fr; }
+  .obligation-card-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .month-summary { grid-template-columns: 1fr; gap: 15px; }
   .payment-expectation-grid { grid-template-columns: 1fr; }
   .rollover-row { grid-template-columns: 1fr; }

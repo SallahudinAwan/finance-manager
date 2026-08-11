@@ -27,7 +27,15 @@ import {
 } from "../api/client";
 import { Modal } from "../components/Modal";
 import { EmptyState, ErrorPanel, PageHeader, ProgressBar, Skeleton } from "../components/ui";
-import type { Month, Paginated, RolloverPreview, SavingsGoal, Session } from "../types";
+import type {
+  IncomePlan,
+  Month,
+  Paginated,
+  PlannedExpense,
+  RolloverPreview,
+  SavingsGoal,
+  Session,
+} from "../types";
 
 interface PersonalExpense {
   id: number;
@@ -325,32 +333,11 @@ export function MonthPage() {
             </div>
             <CircleDollarSign size={20} className="muted-icon" />
           </div>
-          <div className="workspace-list">
-            {data.income_plans.map((income) => {
-              const complete = money(income.received_amount) >= money(income.planned_amount);
-              return (
-                <div className="workspace-row" key={income.id}>
-                  <span className={`status-check ${complete ? "complete" : ""}`}>
-                    {complete ? <Check size={15} /> : <ArrowDownToLine size={15} />}
-                  </span>
-                  <div>
-                    <strong>{income.name}</strong>
-                    <small>
-                      {formatPkr(income.received_amount)} of {formatPkr(income.planned_amount)}
-                    </small>
-                  </div>
-                  {session.is_owner && !complete && (
-                    <button
-                      className="button small secondary"
-                      onClick={() => setIncomeTarget(income.id)}
-                    >
-                      Receive
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <IncomePlanCards
+            incomes={data.income_plans}
+            isOwner={session.is_owner}
+            onReceive={setIncomeTarget}
+          />
         </section>
 
         <section className="panel span-2" data-tour="planned-obligations">
@@ -365,66 +352,11 @@ export function MonthPage() {
               </span>
             )}
           </div>
-          <div className="expense-table-wrap">
-            <table className="expense-table">
-              <thead>
-                <tr>
-                  <th>Expense</th>
-                  <th>Due</th>
-                  <th>Expected</th>
-                  <th>Paid</th>
-                  <th>Unpaid</th>
-                  <th>Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {data.planned_expenses.map((expense) => (
-                  <tr key={expense.id}>
-                    <td>
-                      <strong>{expense.name}</strong>
-                    </td>
-                    <td>
-                      <CalendarDays size={14} />
-                      {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(
-                        appLocale(),
-                        { day: "numeric", month: "short" },
-                      )}
-                    </td>
-                    <td>{formatPkr(expense.expected_amount)}</td>
-                    <td>
-                      {formatPkr(expense.paid_amount)}
-                      {money(expense.carryover_credit) > 0 && (
-                        <small className="carryover-note">
-                          {formatPkr(expense.carryover_credit)} carried forward
-                        </small>
-                      )}
-                    </td>
-                    <td>
-                      <strong className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}>
-                        {formatPkr(expense.remaining_amount)}
-                      </strong>
-                    </td>
-                    <td>
-                      <span className={`status-chip ${expense.status}`}>
-                        {expense.status}
-                      </span>
-                    </td>
-                    <td>
-                      {session.is_owner && (
-                        <button
-                          className="table-action"
-                          onClick={() => setPaymentTarget(expense.id)}
-                        >
-                          Add payment
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PlannedExpenseCards
+            expenses={data.planned_expenses}
+            isOwner={session.is_owner}
+            onAddPayment={setPaymentTarget}
+          />
         </section>
       </div>
 
@@ -666,6 +598,144 @@ export function MonthPage() {
         )}
       </Modal>
     </>
+  );
+}
+
+export function IncomePlanCards({
+  incomes,
+  isOwner,
+  onReceive,
+}: {
+  incomes: IncomePlan[];
+  isOwner: boolean;
+  onReceive: (incomeId: number) => void;
+}) {
+  return (
+    <div className="finance-card-grid income-card-grid" role="list" aria-label="Income plans">
+      {incomes.map((income) => {
+        const complete = money(income.received_amount) >= money(income.planned_amount);
+        return (
+          <article
+            className={`finance-item-card income-card ${complete ? "complete" : ""}`}
+            key={income.id}
+          >
+            <div className="finance-card-top">
+              <div className="finance-card-identity">
+                <span className={`finance-card-icon income ${complete ? "complete" : ""}`}>
+                  {complete ? <Check size={17} /> : <ArrowDownToLine size={17} />}
+                </span>
+                <div>
+                  <small>Income source</small>
+                  <h3>{income.name}</h3>
+                </div>
+              </div>
+              <span className={`status-chip ${complete ? "paid" : "unpaid"}`}>
+                {complete ? "Received" : "Awaiting"}
+              </span>
+            </div>
+            <div className="finance-card-metrics income-card-metrics">
+              <div>
+                <span>Expected</span>
+                <strong>{formatPkr(income.planned_amount)}</strong>
+              </div>
+              <div>
+                <span>Received</span>
+                <strong className={complete ? "positive-text" : ""}>
+                  {formatPkr(income.received_amount)}
+                </strong>
+              </div>
+            </div>
+            {isOwner && !complete && (
+              <button
+                className="button secondary small finance-card-action"
+                onClick={() => onReceive(income.id)}
+              >
+                <ArrowDownToLine size={15} /> Receive
+              </button>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+export function PlannedExpenseCards({
+  expenses,
+  isOwner,
+  onAddPayment,
+}: {
+  expenses: PlannedExpense[];
+  isOwner: boolean;
+  onAddPayment: (expenseId: number) => void;
+}) {
+  return (
+    <div
+      className="finance-card-grid obligation-card-grid"
+      role="list"
+      aria-label="Household expense cards"
+    >
+      {expenses.map((expense) => (
+        <article
+          className={`finance-item-card obligation-card ${expense.status}`}
+          key={expense.id}
+        >
+          <div className="finance-card-top">
+            <div className="finance-card-identity">
+              <span className={`finance-card-icon expense ${expense.status}`}>
+                <Receipt size={17} />
+              </span>
+              <div>
+                <small>Household expense</small>
+                <h3>{expense.name}</h3>
+              </div>
+            </div>
+            <span className={`status-chip ${expense.status}`}>{expense.status}</span>
+          </div>
+          <div className="finance-card-due">
+            <CalendarDays size={14} />
+            <span>Due</span>
+            <time dateTime={expense.due_date}>
+              {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(appLocale(), {
+                day: "numeric",
+                month: "short",
+              })}
+            </time>
+          </div>
+          <div className="finance-card-metrics obligation-card-metrics">
+            <div>
+              <span>Expected</span>
+              <strong>{formatPkr(expense.expected_amount)}</strong>
+            </div>
+            <div>
+              <span>Paid</span>
+              <strong>{formatPkr(expense.paid_amount)}</strong>
+              {money(expense.carryover_credit) > 0 && (
+                <small className="carryover-note">
+                  {formatPkr(expense.carryover_credit)} carried forward
+                </small>
+              )}
+            </div>
+            <div>
+              <span>Unpaid</span>
+              <strong
+                className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}
+              >
+                {formatPkr(expense.remaining_amount)}
+              </strong>
+            </div>
+          </div>
+          {isOwner && (
+            <button
+              className="button secondary small finance-card-action"
+              onClick={() => onAddPayment(expense.id)}
+            >
+              <Plus size={15} /> Add payment
+            </button>
+          )}
+        </article>
+      ))}
+    </div>
   );
 }
 
