@@ -392,7 +392,7 @@ export function MonthPage() {
       </div>
 
       {session.is_owner && (
-        <section className="panel" data-tour="month-transactions">
+        <section className="panel month-transactions-panel" data-tour="month-transactions">
           <div className="panel-heading">
             <div>
               <span className="panel-kicker">Actual bank movements</span>
@@ -466,7 +466,7 @@ export function MonthPage() {
         </section>
       )}
 
-      <section className="panel" data-tour="personal-expenses">
+      <section className="panel personal-expenses-panel" data-tour="personal-expenses">
         <div className="panel-heading">
           <div>
             <span className="panel-kicker">Private by design</span>

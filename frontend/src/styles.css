@@ -840,6 +840,10 @@ html[dir="rtl"] .tour-card {
   box-shadow: var(--shadow);
 }
 
+.month-transactions-panel + .personal-expenses-panel {
+  margin-top: 18px;
+}
+
 .panel-heading {
   display: flex;
   min-height: 43px;
