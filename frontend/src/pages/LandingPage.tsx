@@ -2,11 +2,14 @@ import {
   ArrowRight,
   BarChart3,
   Check,
+  Clock3,
+  Languages,
   LockKeyhole,
   PiggyBank,
   ReceiptText,
   ShieldCheck,
   Sparkles,
+  UsersRound,
   WalletCards,
 } from "lucide-react";
 import { RavaniLogo, RavaniMark } from "../components/RavaniMark";
@@ -113,6 +116,61 @@ export function LandingPage() {
             <div className="floating-card privacy-float">
               <LockKeyhole size={19} />
               <div><small>Personal expenses</small><strong>Private</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-snapshot" aria-labelledby="sample-month-title">
+          <div className="snapshot-shell">
+            <div className="snapshot-heading">
+              <div>
+                <span className="snapshot-label"><Sparkles size={14} /> Sample data</span>
+                <h2 id="sample-month-title">See what a well-planned month can look like.</h2>
+                <p>
+                  One salary, every obligation, protected savings, and a clear amount left
+                  to enjoy—without connecting your bank account.
+                </p>
+              </div>
+              <a
+                className="button snapshot-cta"
+                href={`/accounts/google/login/?process=login&next=${next}`}
+              >
+                Try it with your numbers <ArrowRight size={17} />
+              </a>
+            </div>
+
+            <div className="snapshot-metrics">
+              {[
+                ["Monthly income", "Rs500,000", "Salary received", "income"],
+                ["Household plan", "Rs74,200", "3 of 5 bills settled", "bills"],
+                ["Savings protected", "Rs150,000", "Fixed target allocated", "savings"],
+                ["Safe to spend", "Rs275,800", "Your clear personal budget", "safe"],
+              ].map(([label, value, note, tone]) => (
+                <article className={`snapshot-metric ${tone}`} key={label}>
+                  <small>{label}</small>
+                  <strong>{value}</strong>
+                  <span><Check size={13} /> {note}</span>
+                </article>
+              ))}
+            </div>
+
+            <div className="snapshot-proof">
+              <div className="sample-household">
+                <div className="sample-avatars" aria-hidden="true">
+                  {["SA", "FA", "AA", "MA"].map((initials) => (
+                    <span key={initials}>{initials}</span>
+                  ))}
+                </div>
+                <div>
+                  <strong><UsersRound size={15} /> 4-user demo household</strong>
+                  <small>Shared finances, private personal spending</small>
+                </div>
+              </div>
+              <div className="snapshot-benefits">
+                <span><Clock3 size={15} /> About 5 minutes to set up</span>
+                <span><ShieldCheck size={15} /> Secure Google sign-in</span>
+                <span><Languages size={15} /> English and Urdu</span>
+              </div>
             </div>
           </div>
         </section>

@@ -15,6 +15,13 @@ describe("LandingPage", () => {
       }),
     ).toBeVisible();
     expect(screen.getByText("Ravani · Monthly Money Manager")).toBeVisible();
+    expect(screen.getByText("Sample data")).toBeVisible();
+    expect(screen.getByText("4-user demo household")).toBeVisible();
+    expect(screen.getByText("Rs275,800")).toBeVisible();
+    expect(screen.getByRole("link", { name: /Try it with your numbers/ })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/accounts/google/login/"),
+    );
     expect(screen.queryByText("Finance Manager")).not.toBeInTheDocument();
   });
 });
