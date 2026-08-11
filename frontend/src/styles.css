@@ -3544,8 +3544,26 @@ html[dir="rtl"] .payment-expectation-grid > div:last-child {
   .template-columns { grid-template-columns: 1fr; }
   .metric-card { min-height: 118px; }
   .income-card-grid,
-  .obligation-card-grid { grid-template-columns: 1fr; }
-  .obligation-card-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .obligation-card-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .finance-item-card {
+    padding: 11px;
+    gap: 9px;
+    border-radius: 12px;
+  }
+  .finance-card-top { gap: 8px; }
+  .finance-card-identity { gap: 8px; }
+  .finance-card-icon { width: 31px; height: 31px; border-radius: 9px; }
+  .finance-card-controls { gap: 5px; }
+  .expense-drag-handle { width: 28px; height: 28px; border-radius: 8px; }
+  .finance-card-due { padding: 4px 7px; }
+  .finance-card-metrics { gap: 6px; }
+  .obligation-card-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .finance-card-metrics > div { padding: 7px 6px; border-radius: 8px; }
+  .finance-card-metrics strong { margin-top: 2px; font-size: 10px; }
+  .finance-card-action { min-height: 34px; }
   .month-summary { grid-template-columns: 1fr; gap: 15px; }
   .payment-expectation-grid { grid-template-columns: 1fr; }
   .rollover-row { grid-template-columns: 1fr; }
