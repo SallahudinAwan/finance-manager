@@ -174,6 +174,63 @@ def test_owner_template_edits_update_only_the_latest_month_snapshot() -> None:
     ) == ("Power bill", Decimal("6500.00"), date(2026, 2, 28), 5)
 
 
+def test_owner_edits_monthly_savings_target_in_latest_month_only() -> None:
+    owner, household = create_household()
+    RecurringIncome.objects.create(
+        household=household,
+        name="Salary",
+        amount=Decimal("500000.00"),
+    )
+    goal = SavingsGoal.objects.create(household=household, name="Emergency")
+    january = generate_month(household, 2026, 1)
+    february = generate_month(household, 2026, 2)
+    planned = february.income_plans.get()
+    client = APIClient()
+    client.force_authenticate(owner)
+    received = client.post(
+        f"/api/v1/income-plans/{planned.id}/receive/",
+        {"date": "2026-02-03", "savings_goal": goal.id},
+        format="json",
+    )
+    bank_before = bank_calculated_balance(household.bank_account)
+
+    response = client.patch(
+        "/api/v1/household/",
+        {"monthly_savings_target": "175000.00"},
+        format="json",
+    )
+
+    household.refresh_from_db()
+    january.refresh_from_db()
+    february.refresh_from_db()
+    movement = household.savings_movements.get(kind=SavingsMovement.Kind.ALLOCATION)
+    assert received.status_code == 201
+    assert response.status_code == 200
+    assert household.monthly_savings_target == Decimal("175000.00")
+    assert january.savings_target == Decimal("150000.00")
+    assert february.savings_target == Decimal("175000.00")
+    assert movement.amount == Decimal("175000.00")
+    assert savings_goal_balance(goal) == Decimal("175000.00")
+    assert bank_calculated_balance(household.bank_account) == bank_before
+
+
+def test_member_cannot_edit_monthly_savings_target() -> None:
+    _, household = create_household()
+    member = create_member(household)
+    client = APIClient()
+    client.force_authenticate(member)
+
+    response = client.patch(
+        "/api/v1/household/",
+        {"monthly_savings_target": "175000.00"},
+        format="json",
+    )
+
+    household.refresh_from_db()
+    assert response.status_code == 403
+    assert household.monthly_savings_target == Decimal("150000.00")
+
+
 def test_member_cannot_edit_recurring_plan_templates() -> None:
     _, household = create_household()
     member = create_member(household)
