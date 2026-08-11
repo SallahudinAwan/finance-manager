@@ -644,6 +644,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/planned-expenses/reorder/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_planned_expenses_reorder_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/preferences/": {
         parameters: {
             query?: never;
@@ -1174,6 +1190,7 @@ export interface components {
             due_date?: string;
             /** Format: int64 */
             reminder_lead_days?: number;
+            readonly display_order?: number;
             /** Format: double */
             readonly actual_paid_amount?: number;
             /** Format: double */
@@ -1273,6 +1290,7 @@ export interface components {
             due_date: string;
             /** Format: int64 */
             reminder_lead_days?: number;
+            readonly display_order: number;
             /** Format: double */
             readonly actual_paid_amount: number;
             /** Format: double */
@@ -2881,6 +2899,31 @@ export interface operations {
                 /** @description A unique integer value identifying this planned expense. */
                 id: number;
             };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlannedExpense"];
+                "application/x-www-form-urlencoded": components["schemas"]["PlannedExpense"];
+                "multipart/form-data": components["schemas"]["PlannedExpense"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlannedExpense"];
+                };
+            };
+        };
+    };
+    v1_planned_expenses_reorder_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {

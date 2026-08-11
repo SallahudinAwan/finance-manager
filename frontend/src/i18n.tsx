@@ -94,6 +94,10 @@ const urduMessages: Record<string, string> = {
   "Household expenses": "گھریلو اخراجات",
   "Household expense": "گھریلو خرچ",
   "Household expense cards": "گھریلو اخراجات کے کارڈز",
+  "Unpaid expenses stay first, followed by partial and settled expenses. Drag within a status group to set your preferred order.":
+    "غیر ادا شدہ اخراجات پہلے، جزوی ادائیگیاں دوسرے اور مکمل ادائیگیاں آخر میں رہتی ہیں۔ اپنی پسند کی ترتیب کے لیے ایک ہی حالت کے کارڈز کو گھسیٹیں۔",
+  "Drag to reorder within this status": "اسی حالت میں ترتیب بدلنے کے لیے گھسیٹیں",
+  "Could not save the expense order.": "اخراجات کی ترتیب محفوظ نہیں ہو سکی۔",
   "Expense": "خرچ",
   "Due": "آخری تاریخ",
   "Expected": "متوقع",
@@ -712,6 +716,9 @@ function translate(message: string): string {
 
   const receiveAmount = message.match(/^Receive (.+)$/);
   if (receiveAmount) return `${receiveAmount[1]} وصول کریں`;
+
+  const reorderExpense = message.match(/^Reorder (.+)$/);
+  if (reorderExpense) return `${reorderExpense[1]} کی ترتیب بدلیں`;
 
   return message;
 }

@@ -51,6 +51,7 @@ export interface PlannedExpense {
   expected_amount: Money;
   due_date: string;
   reminder_lead_days: number;
+  display_order: number;
   actual_paid_amount: Money;
   carryover_credit: Money;
   paid_amount: Money;

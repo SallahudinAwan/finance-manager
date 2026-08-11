@@ -9,6 +9,7 @@ import {
   IncomeReceiptForm,
   PlannedExpenseCards,
 } from "./MonthPage";
+import { defaultTransactionDate, reorderExpensesWithinStatus } from "./monthFinanceUtils";
 
 const expense: PlannedExpense = {
   id: 7,
@@ -16,6 +17,7 @@ const expense: PlannedExpense = {
   expected_amount: "25000.00",
   due_date: "2026-07-05",
   reminder_lead_days: 3,
+  display_order: 0,
   actual_paid_amount: "5000.00",
   carryover_credit: "2000.00",
   paid_amount: "7000.00",
@@ -75,6 +77,70 @@ describe("Monthly finance cards", () => {
     expect(within(cards).getByText("Rs 18,000")).toHaveClass("negative-text");
     fireEvent.click(within(cards).getByRole("button", { name: "Add payment" }));
     expect(onAddPayment).toHaveBeenCalledWith(7);
+  });
+
+  it("ranks unpaid, partial, and settled expenses while preserving custom group order", () => {
+    const expenses: PlannedExpense[] = [
+      {
+        ...expense,
+        id: 10,
+        name: "Paid internet",
+        status: "paid",
+        display_order: 0,
+      },
+      {
+        ...expense,
+        id: 12,
+        name: "Second unpaid bill",
+        status: "unpaid",
+        display_order: 2,
+      },
+      {
+        ...expense,
+        id: 11,
+        name: "Partial electricity",
+        status: "partial",
+        display_order: 0,
+      },
+      {
+        ...expense,
+        id: 9,
+        name: "First unpaid bill",
+        status: "unpaid",
+        display_order: 1,
+      },
+    ];
+
+    const { container } = render(
+      <PlannedExpenseCards expenses={expenses} isOwner onAddPayment={vi.fn()} />,
+    );
+
+    expect(
+      Array.from(container.querySelectorAll(".obligation-card h3"), (node) => node.textContent),
+    ).toEqual([
+      "First unpaid bill",
+      "Second unpaid bill",
+      "Partial electricity",
+      "Paid internet",
+    ]);
+    expect(screen.getByRole("button", { name: "Reorder First unpaid bill" })).toBeVisible();
+
+    const reordered = reorderExpensesWithinStatus(expenses, 12, 9);
+    expect(reordered.map((item) => item.name)).toEqual([
+      "Second unpaid bill",
+      "First unpaid bill",
+      "Partial electricity",
+      "Paid internet",
+    ]);
+    expect(reorderExpensesWithinStatus(expenses, 9, 11)).toEqual(
+      reorderExpensesWithinStatus(expenses, -1, -2),
+    );
+  });
+
+  it("defaults transaction dates to today for the active month", () => {
+    const today = new Date(2026, 7, 11);
+    expect(defaultTransactionDate("2026-08", today)).toBe("2026-08-11");
+    expect(defaultTransactionDate("2026-07", today)).toBe("2026-07-01");
   });
 });
 

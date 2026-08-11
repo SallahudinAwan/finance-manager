@@ -260,9 +260,10 @@ class PlannedExpense(TimestampedModel):
     carryover_credit = models.DecimalField(max_digits=14, decimal_places=2, default=ZERO)
     due_date = models.DateField()
     reminder_lead_days = models.PositiveSmallIntegerField(default=3)
+    display_order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["due_date", "name", "id"]
+        ordering = ["display_order", "due_date", "name", "id"]
         constraints = [
             models.CheckConstraint(
                 condition=Q(expected_amount__gt=0),

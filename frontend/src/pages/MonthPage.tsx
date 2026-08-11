@@ -1,5 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  rectSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ArrowLeft,
   ArrowRightLeft,
   ArrowDownToLine,
@@ -7,6 +23,7 @@ import {
   CalendarDays,
   Check,
   CircleDollarSign,
+  GripVertical,
   LockKeyhole,
   Pencil,
   Plus,
@@ -14,7 +31,7 @@ import {
   Trash2,
   WalletCards,
 } from "lucide-react";
-import { type FormEvent, type RefObject, useRef, useState } from "react";
+import { type FormEvent, type RefObject, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import {
   api,
@@ -36,6 +53,12 @@ import type {
   SavingsGoal,
   Session,
 } from "../types";
+import {
+  defaultTransactionDate,
+  expensePriorityGroup,
+  reorderExpensesWithinStatus,
+  sortPlannedExpenses,
+} from "./monthFinanceUtils";
 
 interface PersonalExpense {
   id: number;
@@ -66,6 +89,11 @@ export function MonthPage() {
   const { label } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const reorderExpenses = useMutation({
+    mutationFn: (expenseIds: number[]) =>
+      postJson("/planned-expenses/reorder/", { expense_ids: expenseIds }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["month"] }),
+  });
   const [paymentTarget, setPaymentTarget] = useState<number | null>(null);
   const [incomeTarget, setIncomeTarget] = useState<number | null>(null);
   const [addMonthOpen, setAddMonthOpen] = useState(false);
@@ -171,6 +199,7 @@ export function MonthPage() {
     (expense) => expense.id === paymentTarget,
   );
   const incomePlan = data.income_plans.find((income) => income.id === incomeTarget);
+  const defaultEntryDate = defaultTransactionDate(data.label);
 
   return (
     <>
@@ -283,7 +312,7 @@ export function MonthPage() {
             >
               <PersonalExpenseForm
                 period={data.id}
-                defaultDate={`${data.label}-01`}
+                defaultDate={defaultEntryDate}
                 onSaved={async () => {
                   setPersonalOpen(false);
                   await refresh();
@@ -356,6 +385,8 @@ export function MonthPage() {
             expenses={data.planned_expenses}
             isOwner={session.is_owner}
             onAddPayment={setPaymentTarget}
+            onReorder={(expenseIds) => reorderExpenses.mutateAsync(expenseIds)}
+            reorderError={reorderExpenses.isError}
           />
         </section>
       </div>
@@ -504,7 +535,7 @@ export function MonthPage() {
             <HouseholdPaymentSummary expense={paymentExpense} />
             <MoneyMovementForm
               label="Payment amount"
-              defaultDate={`${data.label}-01`}
+              defaultDate={defaultEntryDate}
               amountInputRef={paymentAmountRef}
               onSubmit={(body) =>
                 postJson(`/planned-expenses/${paymentExpense.id}/payments/`, body)
@@ -664,78 +695,168 @@ export function PlannedExpenseCards({
   expenses,
   isOwner,
   onAddPayment,
+  onReorder,
+  reorderError = false,
 }: {
   expenses: PlannedExpense[];
   isOwner: boolean;
   onAddPayment: (expenseId: number) => void;
+  onReorder?: (expenseIds: number[]) => Promise<unknown> | void;
+  reorderError?: boolean;
 }) {
+  const [orderedExpenses, setOrderedExpenses] = useState(() => sortPlannedExpenses(expenses));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  useEffect(() => {
+    setOrderedExpenses(sortPlannedExpenses(expenses));
+  }, [expenses]);
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const activeId = Number(active.id);
+    const overId = Number(over.id);
+    const activeExpense = orderedExpenses.find((expense) => expense.id === activeId);
+    const overExpense = orderedExpenses.find((expense) => expense.id === overId);
+    if (
+      !activeExpense
+      || !overExpense
+      || expensePriorityGroup(activeExpense) !== expensePriorityGroup(overExpense)
+    ) {
+      return;
+    }
+    const reordered = reorderExpensesWithinStatus(orderedExpenses, activeId, overId);
+    setOrderedExpenses(reordered);
+    const group = expensePriorityGroup(activeExpense);
+    const groupIds = reordered
+      .filter((expense) => expensePriorityGroup(expense) === group)
+      .map((expense) => expense.id);
+    Promise.resolve(onReorder?.(groupIds)).catch(() => {
+      setOrderedExpenses(sortPlannedExpenses(expenses));
+    });
+  };
+
   return (
-    <div
-      className="finance-card-grid obligation-card-grid"
-      role="list"
-      aria-label="Household expense cards"
-    >
-      {expenses.map((expense) => (
-        <article
-          className={`finance-item-card obligation-card ${expense.status}`}
-          key={expense.id}
+    <>
+      {isOwner && orderedExpenses.length > 1 && (
+        <p className="expense-order-help">
+          Unpaid expenses stay first, followed by partial and settled expenses. Drag within
+          a status group to set your preferred order.
+        </p>
+      )}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={orderedExpenses.map((expense) => expense.id)}
+          strategy={rectSortingStrategy}
         >
-          <div className="finance-card-top">
-            <div className="finance-card-identity">
-              <span className={`finance-card-icon expense ${expense.status}`}>
-                <Receipt size={17} />
-              </span>
-              <div>
-                <small>Household expense</small>
-                <h3>{expense.name}</h3>
-              </div>
-            </div>
-            <span className={`status-chip ${expense.status}`}>{expense.status}</span>
+          <div
+            className="finance-card-grid obligation-card-grid"
+            role="list"
+            aria-label="Household expense cards"
+          >
+            {orderedExpenses.map((expense) => (
+              <SortableExpenseCard
+                expense={expense}
+                isOwner={isOwner}
+                key={expense.id}
+                onAddPayment={onAddPayment}
+              />
+            ))}
           </div>
-          <div className="finance-card-due">
-            <CalendarDays size={14} />
-            <span>Due</span>
-            <time dateTime={expense.due_date}>
-              {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(appLocale(), {
-                day: "numeric",
-                month: "short",
-              })}
-            </time>
+        </SortableContext>
+      </DndContext>
+      {reorderError && <p className="form-error">Could not save the expense order.</p>}
+    </>
+  );
+}
+
+function SortableExpenseCard({
+  expense,
+  isOwner,
+  onAddPayment,
+}: {
+  expense: PlannedExpense;
+  isOwner: boolean;
+  onAddPayment: (expenseId: number) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: expense.id,
+    disabled: !isOwner,
+  });
+  return (
+    <article
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`finance-item-card obligation-card ${expense.status} ${isDragging ? "dragging" : ""}`}
+    >
+      <div className="finance-card-top">
+        <div className="finance-card-identity">
+          <span className={`finance-card-icon expense ${expense.status}`}>
+            <Receipt size={17} />
+          </span>
+          <div>
+            <small>Household expense</small>
+            <h3>{expense.name}</h3>
           </div>
-          <div className="finance-card-metrics obligation-card-metrics">
-            <div>
-              <span>Expected</span>
-              <strong>{formatPkr(expense.expected_amount)}</strong>
-            </div>
-            <div>
-              <span>Paid</span>
-              <strong>{formatPkr(expense.paid_amount)}</strong>
-              {money(expense.carryover_credit) > 0 && (
-                <small className="carryover-note">
-                  {formatPkr(expense.carryover_credit)} carried forward
-                </small>
-              )}
-            </div>
-            <div>
-              <span>Unpaid</span>
-              <strong
-                className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}
-              >
-                {formatPkr(expense.remaining_amount)}
-              </strong>
-            </div>
-          </div>
+        </div>
+        <div className="finance-card-controls">
+          <span className={`status-chip ${expense.status}`}>{expense.status}</span>
           {isOwner && (
             <button
-              className="button secondary small finance-card-action"
-              onClick={() => onAddPayment(expense.id)}
+              type="button"
+              className="expense-drag-handle"
+              aria-label={`Reorder ${expense.name}`}
+              title="Drag to reorder within this status"
+              {...attributes}
+              {...listeners}
             >
-              <Plus size={15} /> Add payment
+              <GripVertical size={16} />
             </button>
           )}
-        </article>
-      ))}
-    </div>
+        </div>
+      </div>
+      <div className="finance-card-due">
+        <CalendarDays size={14} />
+        <span>Due</span>
+        <time dateTime={expense.due_date}>
+          {new Date(`${expense.due_date}T00:00:00`).toLocaleDateString(appLocale(), {
+            day: "numeric",
+            month: "short",
+          })}
+        </time>
+      </div>
+      <div className="finance-card-metrics obligation-card-metrics">
+        <div>
+          <span>Expected</span>
+          <strong>{formatPkr(expense.expected_amount)}</strong>
+        </div>
+        <div>
+          <span>Paid</span>
+          <strong>{formatPkr(expense.paid_amount)}</strong>
+          {money(expense.carryover_credit) > 0 && (
+            <small className="carryover-note">
+              {formatPkr(expense.carryover_credit)} carried forward
+            </small>
+          )}
+        </div>
+        <div>
+          <span>Unpaid</span>
+          <strong className={money(expense.remaining_amount) > 0 ? "negative-text" : ""}>
+            {formatPkr(expense.remaining_amount)}
+          </strong>
+        </div>
+      </div>
+      {isOwner && (
+        <button
+          className="button secondary small finance-card-action"
+          onClick={() => onAddPayment(expense.id)}
+        >
+          <Plus size={15} /> Add payment
+        </button>
+      )}
+    </article>
   );
 }
 

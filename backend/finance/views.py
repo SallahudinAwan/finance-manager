@@ -54,6 +54,7 @@ from .serializers import (
     OwnershipTransferSerializer,
     PaymentSerializer,
     PersonalExpenseSerializer,
+    PlannedExpenseReorderSerializer,
     PlannedExpenseSerializer,
     ReconciliationInputSerializer,
     RecurringExpenseSerializer,
@@ -449,6 +450,47 @@ class PlannedExpenseViewSet(
     def perform_update(self, serializer) -> None:
         planned = serializer.save()
         refresh_expense_carryovers(planned.period.household, planned.period)
+
+    @action(detail=False, methods=["post"], permission_classes=[IsHouseholdOwner])
+    @transaction.atomic
+    def reorder(self, request) -> Response:
+        def ordering_group(expense: PlannedExpense) -> str:
+            payment_status = expense.payment_status
+            return "settled" if payment_status in {"paid", "overpaid"} else payment_status
+
+        serializer = PlannedExpenseReorderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        expense_ids = serializer.validated_data["expense_ids"]
+        expenses = list(self.get_queryset().select_related("period").filter(id__in=expense_ids))
+        if len(expenses) != len(expense_ids):
+            return Response(
+                {"expense_ids": "Every expense must belong to your household."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        periods = {expense.period_id for expense in expenses}
+        ordering_groups = {ordering_group(expense) for expense in expenses}
+        if len(periods) != 1 or len(ordering_groups) != 1:
+            return Response(
+                {"expense_ids": "Reorder expenses only within the same month and status group."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        period = expenses[0].period
+        selected_group = ordering_group(expenses[0])
+        status_group = [
+            expense
+            for expense in period.planned_expenses.prefetch_related("ledger_entries")
+            if ordering_group(expense) == selected_group
+        ]
+        if {expense.id for expense in status_group} != set(expense_ids):
+            return Response(
+                {"expense_ids": "Include every expense in this payment-status group."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        by_id = {expense.id: expense for expense in expenses}
+        for display_order, expense_id in enumerate(expense_ids):
+            by_id[expense_id].display_order = display_order
+        PlannedExpense.objects.bulk_update(by_id.values(), ["display_order"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"], permission_classes=[IsHouseholdOwner])
     def payments(self, request, pk=None) -> Response:
