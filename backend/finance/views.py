@@ -82,6 +82,7 @@ from .services import (
     refresh_expense_carryovers,
     refresh_month_rollovers,
     rollover_preview,
+    sync_household_savings_target_to_latest_month,
     sync_recurring_expense_to_latest_month,
     sync_recurring_income_to_latest_month,
     trends_data,
@@ -177,16 +178,21 @@ class HouseholdView(APIView):
         return Response(HouseholdSerializer(user_household(request.user)).data)
 
     @extend_schema(request=HouseholdSerializer, responses={200: HouseholdSerializer})
+    @transaction.atomic
     def patch(self, request) -> Response:
         if not is_owner(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
+        household = user_household(request.user)
         serializer = HouseholdSerializer(
-            user_household(request.user),
+            household,
             data=request.data,
             partial=True,
         )
         serializer.is_valid(raise_exception=True)
-        return Response(HouseholdSerializer(serializer.save()).data)
+        household = serializer.save()
+        if "monthly_savings_target" in serializer.validated_data:
+            sync_household_savings_target_to_latest_month(household)
+        return Response(HouseholdSerializer(household).data)
 
 
 class HouseholdMembersView(APIView):

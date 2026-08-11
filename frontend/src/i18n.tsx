@@ -248,6 +248,14 @@ const urduMessages: Record<string, string> = {
   "Enter the balance shown by your bank. Adjustments are never posted silently.":
     "بینک میں دکھائی جانے والی رقم درج کریں۔ ایڈجسٹمنٹ ہمیشہ واضح طور پر ریکارڈ ہوگی۔",
   "Monthly savings target · PKR · Asia/Karachi": "ماہانہ بچت کا ہدف · PKR · ایشیا/کراچی",
+  "Edit monthly savings": "ماہانہ بچت میں ترمیم",
+  "Edit savings": "بچت میں ترمیم",
+  "This updates the recurring target and the newest active month. Earlier months stay unchanged, and savings remain an internal bank-neutral allocation.":
+    "یہ مستقل ہدف اور تازہ ترین فعال مہینے کو اپ ڈیٹ کرتا ہے۔ پہلے مہینے تبدیل نہیں ہوتے اور بچت اندرونی تقسیم رہتی ہے جس سے بینک بیلنس نہیں بدلتا۔",
+  "This amount is reserved internally when income is received. It does not create a second bank transaction.":
+    "آمدنی وصول ہونے پر یہ رقم اندرونی طور پر محفوظ ہوتی ہے۔ اس سے دوسرا بینک لین دین نہیں بنتا۔",
+  "Please enter a valid monthly savings amount.": "درست ماہانہ بچت کی رقم درج کریں۔",
+  "Update monthly savings": "ماہانہ بچت اپ ڈیٹ کریں",
   "Monthly generator": "ماہانہ جنریٹر",
   "Recurring plan": "مستقل منصوبہ",
   "Income sources": "آمدنی کے ذرائع",

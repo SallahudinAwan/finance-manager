@@ -136,6 +136,17 @@ def sync_recurring_income_to_latest_month(template: RecurringIncome) -> None:
 
 
 @transaction.atomic
+def sync_household_savings_target_to_latest_month(household: Household) -> None:
+    """Keep the newest month aligned after the recurring savings target changes."""
+    latest_period = household.periods.filter(is_deleted=False).order_by("-year", "-month").first()
+    if latest_period is None:
+        return
+    latest_period.savings_target = household.monthly_savings_target
+    latest_period.save(update_fields=["savings_target", "updated_at"])
+    refresh_month_rollovers(household, latest_period)
+
+
+@transaction.atomic
 def sync_recurring_expense_to_latest_month(template: RecurringExpense) -> None:
     """Keep the newest bill snapshot aligned without rewriting earlier months."""
     latest_period = (

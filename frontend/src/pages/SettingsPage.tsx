@@ -15,7 +15,7 @@ import { useOutletContext } from "react-router-dom";
 import { api, appLocale, formatPkr, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
 import { ErrorPanel, PageHeader, Skeleton } from "../components/ui";
-import type { Paginated, Session } from "../types";
+import type { Money, Paginated, Session } from "../types";
 
 interface Bank {
   id: number;
@@ -47,6 +47,7 @@ export function SettingsPage() {
   const { session } = useOutletContext<{ session: Session }>();
   const queryClient = useQueryClient();
   const [reconcileOpen, setReconcileOpen] = useState(false);
+  const [savingsTargetOpen, setSavingsTargetOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [templateEditor, setTemplateEditor] = useState<{
     type: "income" | "expense";
@@ -71,6 +72,7 @@ export function SettingsPage() {
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["bank"] }),
+      queryClient.invalidateQueries({ queryKey: ["session"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       queryClient.invalidateQueries({ queryKey: ["income-templates"] }),
       queryClient.invalidateQueries({ queryKey: ["expense-templates"] }),
@@ -78,6 +80,8 @@ export function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["month"] }),
       queryClient.invalidateQueries({ queryKey: ["months"] }),
       queryClient.invalidateQueries({ queryKey: ["trends"] }),
+      queryClient.invalidateQueries({ queryKey: ["savings-goals"] }),
+      queryClient.invalidateQueries({ queryKey: ["savings-movements"] }),
     ]);
   };
 
@@ -138,6 +142,27 @@ export function SettingsPage() {
             <strong>{formatPkr(session.household?.monthly_savings_target)}</strong>
             <p>Monthly savings target · PKR · Asia/Karachi</p>
           </div>
+          {session.is_owner && (
+            <Modal
+              title="Edit monthly savings"
+              description="This updates the recurring target and the newest active month. Earlier months stay unchanged, and savings remain an internal bank-neutral allocation."
+              trigger={
+                <button className="button secondary">
+                  <Pencil size={16} /> Edit savings
+                </button>
+              }
+              open={savingsTargetOpen}
+              onOpenChange={setSavingsTargetOpen}
+            >
+              <SavingsTargetForm
+                target={session.household?.monthly_savings_target ?? "0"}
+                onSaved={async () => {
+                  setSavingsTargetOpen(false);
+                  await refresh();
+                }}
+              />
+            </Modal>
+          )}
         </article>
       </section>
 
@@ -305,6 +330,54 @@ export function SettingsPage() {
         )}
       </Modal>
     </>
+  );
+}
+export function SavingsTargetForm({
+  target,
+  onSaved,
+}: {
+  target: Money;
+  onSaved: () => Promise<void>;
+}) {
+  const [amount, setAmount] = useState(String(target));
+  const mutation = useMutation({
+    mutationFn: () => patchJson("/household/", { monthly_savings_target: amount }),
+    onSuccess: onSaved,
+  });
+  return (
+    <form
+      className="stack-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        mutation.mutate();
+      }}
+    >
+      <label>
+        Fixed monthly savings target
+        <div className="money-input">
+          <span>Rs</span>
+          <input
+            aria-label="Fixed monthly savings target"
+            required
+            type="number"
+            min="0"
+            step="0.01"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+        </div>
+        <small className="field-help">
+          This amount is reserved internally when income is received. It does not create a
+          second bank transaction.
+        </small>
+      </label>
+      {mutation.isError && (
+        <p className="form-error">Please enter a valid monthly savings amount.</p>
+      )}
+      <button className="button primary full" disabled={mutation.isPending}>
+        {mutation.isPending ? "Updating…" : "Update monthly savings"}
+      </button>
+    </form>
   );
 }
 function ReconcileForm({ onSaved }: { onSaved: () => Promise<void> }) {
