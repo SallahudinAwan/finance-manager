@@ -15,6 +15,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { Session } from "../types";
@@ -79,6 +80,7 @@ export function AppShell({ session }: { session: Session }) {
   }, []);
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className={`app-shell ${collapsed ? "collapsed" : ""}`}>
       <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
         <div className="brand" data-tour="brand">
@@ -184,9 +186,18 @@ export function AppShell({ session }: { session: Session }) {
             </button>
           </div>
         </div>
-        <div className="page-container">
-          <Outlet context={{ session }} />
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            className="page-container"
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <Outlet context={{ session }} />
+          </motion.div>
+        </AnimatePresence>
       </main>
       <GuidedTour
         open={tourOpen}
@@ -195,5 +206,6 @@ export function AppShell({ session }: { session: Session }) {
         onMobileNavigationChange={handleTourMobileNavigation}
       />
     </div>
+    </MotionConfig>
   );
 }
