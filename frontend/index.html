@@ -7,7 +7,25 @@
       name="description"
       content="Ravani is the monthly money manager that gives every rupee a destination—from salary day to month-end."
     />
-    <meta name="theme-color" content="#111c44" />
+    <meta name="theme-color" content="#f5f7fb" />
+    <script>
+      (() => {
+        try {
+          const saved = localStorage.getItem("ravani-theme-preference");
+          const theme = saved === "light" || saved === "dark"
+            ? saved
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+          document.querySelector('meta[name="theme-color"]').content =
+            theme === "dark" ? "#0d1224" : "#f5f7fb";
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Ravani · Monthly Money Manager</title>
   </head>

@@ -18,6 +18,13 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { Session } from "../types";
+import {
+  applyTheme,
+  type ColorTheme,
+  getStoredTheme,
+  getSystemTheme,
+  saveThemePreference,
+} from "../utils/theme";
 import { GuidedTour } from "./GuidedTour";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { RavaniLogo } from "./RavaniMark";
@@ -35,10 +42,13 @@ const nav = [
 export function AppShell({ session }: { session: Session }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
+  const [themePreference, setThemePreference] = useState<ColorTheme | null>(getStoredTheme);
+  const [systemTheme, setSystemTheme] = useState<ColorTheme>(getSystemTheme);
   const [tourOpen, setTourOpen] = useState(!session.user.tour_completed);
   const [tourNavigationOpen, setTourNavigationOpen] = useState(false);
   const location = useLocation();
+  const theme = themePreference ?? systemTheme;
+  const dark = theme === "dark";
 
   useEffect(() => {
     if (!tourOpen || !tourNavigationOpen) setMobileOpen(false);
@@ -47,9 +57,17 @@ export function AppShell({ session }: { session: Session }) {
     if (tourOpen) setCollapsed(false);
   }, [tourOpen]);
   useEffect(() => {
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-    localStorage.setItem("theme", dark ? "dark" : "light");
-  }, [dark]);
+    applyTheme(theme);
+  }, [theme]);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setSystemTheme(event.matches ? "dark" : "light");
+    };
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
   const handleTourMobileNavigation = useCallback((open: boolean) => {
     setTourNavigationOpen(open);
     if (window.matchMedia("(max-width: 880px)").matches) setMobileOpen(open);
@@ -155,7 +173,11 @@ export function AppShell({ session }: { session: Session }) {
             <span className="currency-pill">PKR · Karachi</span>
             <button
               className="theme-button"
-              onClick={() => setDark((value) => !value)}
+              onClick={() => {
+                const nextTheme = dark ? "light" : "dark";
+                setThemePreference(nextTheme);
+                saveThemePreference(nextTheme);
+              }}
               aria-label="Toggle color theme"
             >
               {dark ? <Sun size={18} /> : <Moon size={18} />}
