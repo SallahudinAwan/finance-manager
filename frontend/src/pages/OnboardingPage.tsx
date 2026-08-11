@@ -14,6 +14,7 @@ import { useState } from "react";
 import { postJson } from "../api/client";
 import { RavaniLogo } from "../components/RavaniMark";
 import type { Session } from "../types";
+import { todayDateValue } from "../utils/dates";
 
 type Income = { name: string; amount: string };
 type Expense = {
@@ -32,7 +33,7 @@ export function OnboardingPage({ session }: { session: Session }) {
   );
   const [bankName, setBankName] = useState("Main Bank");
   const [openingBalance, setOpeningBalance] = useState("");
-  const [openingDate, setOpeningDate] = useState(new Date().toISOString().slice(0, 10));
+  const [openingDate, setOpeningDate] = useState(todayDateValue);
   const [savingsTarget, setSavingsTarget] = useState("");
   const [incomes, setIncomes] = useState<Income[]>([{ name: "", amount: "" }]);
   const [expenses, setExpenses] = useState<Expense[]>([

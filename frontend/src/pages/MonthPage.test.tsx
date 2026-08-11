@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PlannedExpense } from "../types";
+import { defaultTransactionDate } from "../utils/dates";
 import {
   AddMonthForm,
   HouseholdPaymentSummary,
@@ -9,7 +10,7 @@ import {
   IncomeReceiptForm,
   PlannedExpenseCards,
 } from "./MonthPage";
-import { defaultTransactionDate, reorderExpensesWithinStatus } from "./monthFinanceUtils";
+import { reorderExpensesWithinStatus } from "./monthFinanceUtils";
 
 const expense: PlannedExpense = {
   id: 7,

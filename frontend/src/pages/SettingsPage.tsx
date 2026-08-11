@@ -16,6 +16,7 @@ import { api, appLocale, formatPkr, patchJson, postJson } from "../api/client";
 import { Modal } from "../components/Modal";
 import { ErrorPanel, PageHeader, Skeleton } from "../components/ui";
 import type { Money, Paginated, Session } from "../types";
+import { todayDateValue } from "../utils/dates";
 
 interface Bank {
   id: number;
@@ -387,7 +388,7 @@ function ReconcileForm({ onSaved }: { onSaved: () => Promise<void> }) {
   const mutation = useMutation({
     mutationFn: () =>
       postJson("/bank/reconciliations/", {
-        date: new Date().toISOString().slice(0, 10),
+        date: todayDateValue(),
         actual_balance: actual,
         notes,
         post_adjustment: postAdjustment,

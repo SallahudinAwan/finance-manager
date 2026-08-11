@@ -53,8 +53,8 @@ import type {
   SavingsGoal,
   Session,
 } from "../types";
+import { defaultTransactionDate } from "../utils/dates";
 import {
-  defaultTransactionDate,
   expensePriorityGroup,
   reorderExpensesWithinStatus,
   sortPlannedExpenses,
@@ -619,7 +619,7 @@ export function MonthPage() {
             savingsTarget={data.savings_target}
             fixedSavingsAllocated={data.fixed_savings_allocated}
             goals={goals.data?.results ?? []}
-            defaultDate={`${data.label}-01`}
+            defaultDate={defaultEntryDate}
             onSubmit={(body) => postJson(`/income-plans/${incomePlan.id}/receive/`, body)}
             onSaved={async () => {
               setIncomeTarget(null);

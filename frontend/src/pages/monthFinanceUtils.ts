@@ -51,8 +51,3 @@ export function reorderExpensesWithinStatus(
     expensePriorityGroup(expense) === group ? reorderedGroup[groupIndex++] : expense,
   );
 }
-
-export function defaultTransactionDate(monthLabel: string, today = new Date()): string {
-  const todayLabel = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  return todayLabel.startsWith(`${monthLabel}-`) ? todayLabel : `${monthLabel}-01`;
-}
