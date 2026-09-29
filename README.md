@@ -93,7 +93,7 @@ reconciliation variance = entered bank balance - calculated balance
 house balance = planned household expenses - actual household payments
 net monthly cash flow = income - household payments - personal expenses
 safe to spend = income received - planned household expenses
-                - max(savings target, net new savings) - personal expenses
+                - savings target - personal expenses
 ```
 
 All amounts use decimal PKR values. Months snapshot active templates on first access, so

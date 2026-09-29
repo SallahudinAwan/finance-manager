@@ -369,14 +369,8 @@ def period_reserved_savings(
     *,
     include_safe_to_spend_allocations: bool = True,
 ) -> Decimal:
-    """Savings that should reduce safe-to-spend without double-counting unpaid bills."""
-    external_contributions = period.savings_movements.filter(
-        kind=SavingsMovement.Kind.CONTRIBUTION
-    ).aggregate(total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD)))["total"]
-    withdrawals = period.savings_movements.filter(kind=SavingsMovement.Kind.WITHDRAWAL).aggregate(
-        total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD))
-    )["total"]
-    reserved = max(period.savings_target, external_contributions - withdrawals)
+    """Reserve the planned savings target without counting bank contributions twice."""
+    reserved = period.savings_target
     if include_safe_to_spend_allocations:
         safe_allocations = period.savings_movements.filter(
             kind=SavingsMovement.Kind.ALLOCATION,
