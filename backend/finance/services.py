@@ -508,8 +508,9 @@ def receive_planned_income(
     *,
     receipt_date: date,
     savings_goal: SavingsGoal | None,
+    amount: Decimal | None = None,
 ) -> LedgerEntry:
-    """Receive the unreceived plan amount and reserve fixed savings exactly once."""
+    """Receive part or all of the remaining plan and reserve fixed savings exactly once."""
     planned = MonthlyIncomePlan.objects.select_for_update().get(pk=planned_income.pk)
     period = (
         MonthlyPeriod.objects.select_for_update()
@@ -523,9 +524,14 @@ def receive_planned_income(
     received = planned.ledger_entries.aggregate(
         total=Coalesce(Sum("amount"), Value(ZERO, output_field=MONEY_FIELD))
     )["total"]
-    amount = planned.planned_amount - received
-    if amount <= ZERO:
+    remaining = planned.planned_amount - received
+    if remaining <= ZERO:
         raise IncomeReceiptValidationError("This income has already been received in full.")
+    amount = remaining if amount is None else amount
+    if amount <= ZERO or amount > remaining:
+        raise IncomeReceiptValidationError(
+            "The received amount must be positive and no greater than the remaining planned income."
+        )
 
     fixed_allocation_exists = period.outgoing_rollover_allocations.filter(
         source_kind=RolloverAllocation.SourceKind.FIXED_SAVINGS

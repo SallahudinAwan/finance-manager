@@ -559,6 +559,7 @@ class IncomePlanViewSet(
                 request.user,
                 receipt_date=serializer.validated_data["date"],
                 savings_goal=serializer.validated_data.get("savings_goal"),
+                amount=serializer.validated_data.get("amount"),
             )
         except IncomeReceiptValidationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

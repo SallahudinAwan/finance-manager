@@ -1364,15 +1364,20 @@ export function IncomeReceiptForm({
 }) {
   const [dateValue, setDateValue] = useState(defaultDate);
   const [savingsGoal, setSavingsGoal] = useState("");
+  const [amountValue, setAmountValue] = useState(
+    String(Math.max(money(income.planned_amount) - money(income.received_amount), 0)),
+  );
   const activeGoals = goals.filter((goal) => goal.active);
-  const amountToReceive = Math.max(
+  const remainingAmount = Math.max(
     money(income.planned_amount) - money(income.received_amount),
     0,
   );
+  const amountToReceive = Number(amountValue);
   const requiresSavingsGoal = money(savingsTarget) > 0 && !fixedSavingsAllocated;
   const mutation = useMutation({
     mutationFn: () =>
       onSubmit({
+        amount: amountToReceive.toFixed(2),
         date: dateValue,
         savings_goal: requiresSavingsGoal ? Number(savingsGoal) : null,
       }),
@@ -1399,6 +1404,25 @@ export function IncomeReceiptForm({
           </div>
         </div>
       </section>
+      <label>
+        Amount received
+        <div className="money-input">
+          <span>Rs</span>
+          <input
+            aria-label="Amount received"
+            required
+            type="number"
+            min="0.01"
+            max={remainingAmount}
+            step="0.01"
+            value={amountValue}
+            onChange={(event) => setAmountValue(event.target.value)}
+          />
+        </div>
+        <span className="field-help">
+          Up to {formatPkr(remainingAmount)} remains on this planned income.
+        </span>
+      </label>
       <label>
         Date received
         <input
@@ -1441,7 +1465,9 @@ export function IncomeReceiptForm({
         className="button primary full"
         disabled={
           mutation.isPending
+          || !Number.isFinite(amountToReceive)
           || amountToReceive <= 0
+          || amountToReceive > remainingAmount
           || (requiresSavingsGoal && (!savingsGoal || !activeGoals.length))
         }
       >

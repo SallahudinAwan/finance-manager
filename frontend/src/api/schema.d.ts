@@ -845,6 +845,8 @@ export interface components {
             readonly onboarding_complete: boolean;
         };
         IncomeReceipt: {
+            /** Format: double */
+            amount?: number;
             /** Format: date */
             date?: string;
             savings_goal?: number | null;

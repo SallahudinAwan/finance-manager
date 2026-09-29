@@ -1974,6 +1974,12 @@ components:
     IncomeReceipt:
       type: object
       properties:
+        amount:
+          type: number
+          format: double
+          maximum: 1000000000000
+          minimum: 0.01
+          exclusiveMaximum: true
         date:
           type: string
           format: date

@@ -301,6 +301,7 @@ class PaymentSerializer(serializers.Serializer):
 
 
 class IncomeReceiptSerializer(serializers.Serializer):
+    amount = MoneyField(min_value=Decimal("0.01"), required=False)
     date = serializers.DateField(default=date.today)
     savings_goal = serializers.IntegerField(min_value=1, required=False, allow_null=True)
 
